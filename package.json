@@ -1,0 +1,22 @@
+{
+  "name": "pm-doc-generator",
+  "version": "1.0.0",
+  "description": "Project Management Document Generator with DOCX templates",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "docxtemplater": "^3.67.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^7.0.10",
+    "openai": "^6.9.1",
+    "pizzip": "^3.2.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

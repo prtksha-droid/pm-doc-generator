@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create User Stories from BRD DOCX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    p {
+      margin-top: 4px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input[type="text"],
+    select,
+    textarea,
+    input[type="file"],
+    input[type="date"] {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      background: #ffffff;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: #ffffff;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .nav {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .nav a {
+      text-decoration: none;
+      color: #2563eb;
+      font-weight: 500;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .status--error {
+      color: #b91c1c;
+    }
+    .status--success {
+      color: #166534;
+    }
+    .helper {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 6px 8px;
+      vertical-align: top;
+    }
+    th {
+      background: #f3f4f6;
+      text-align: left;
+      font-weight: 600;
+    }
+    td input[type="text"] {
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 12px;
+      padding: 4px 6px;
+    }
+    .section-box {
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      background: #f9fafb;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Create User Stories from BRD DOCX</h1>
+
+    <div class="nav">
+      <span>Navigation:</span>
+      <a href="/">Back to Main Document Generator</a>
+      <a href="/user-stories.html">Create User Stories</a>
+    </div>
+
+    <p>
+      Upload your <strong>BRD .docx</strong> file and let AI generate
+      agile user stories, grouped into <strong>Epics</strong>, then export
+      everything into Excel with AI-estimated Story Points and Sprint allocation.
+    </p>
+
+    <div class="section-box">
+      <div>
+        <label for="usProjectName">Project Name (optional)</label>
+        <input
+          type="text"
+          id="usProjectName"
+          placeholder="e.g. Marketing Landing Page Revamp"
+        />
+      </div>
+
+      <div style="margin-top: 10px;">
+        <label for="usDocType">Source Document Type</label>
+        <select id="usDocType">
+          <option value="brd">BRD</option>
+          <option value="frs">FRS</option>
+          <option value="sow">SOW</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <label for="brdDocx">Upload BRD Document (.docx)</label>
+        <input
+          type="file"
+          id="brdDocx"
+          name="brdDocx"
+          accept=".docx"
+        />
+        <p class="helper">
+          This should be the BRD (or similar requirements document) in .docx format.
+          The app will extract the text from the file on the server and use it to
+          generate epics and user stories.
+        </p>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <button id="generateStoriesBtn">Generate User Stories with AI</button>
+        <button id="copyStoriesBtn" type="button">Copy User Stories</button>
+        <button id="downloadExcelBtn" type="button">Download as Excel</button>
+        <div id="usStatus" class="status"></div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">Sprint Planning (optional)</div>
+
+      <label for="sprintLengthWeeks">Sprint length (weeks)</label>
+      <select id="sprintLengthWeeks">
+        <option value="2" selected>2 weeks</option>
+        <option value="1">1 week</option>
+        <option value="3">3 weeks</option>
+        <option value="4">4 weeks</option>
+      </select>
+
+      <label for="sprintStart" style="margin-top: 8px;">Sprint start date</label>
+      <input type="date" id="sprintStart" />
+
+      <label for="sprintEnd" style="margin-top: 8px;">Sprint end date</label>
+      <input type="date" id="sprintEnd" />
+
+      <p class="helper">
+        If you set sprint length, start date and end date, the Excel will include a
+        <strong>Sprint</strong> column and automatically distribute user stories
+        across sprints using AI story points. If left blank, Sprint will be empty.
+      </p>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">Epics (AI suggested)</div>
+      <div id="epicsSummary" class="helper">
+        Epics and their descriptions will appear here after generation.
+      </div>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">User Stories (edit Epics if needed)</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25%;">Epic</th>
+            <th style="width: 75%;">User Story</th>
+          </tr>
+        </thead>
+        <tbody id="userStoriesTableBody">
+          <!-- Filled dynamically -->
+        </tbody>
+      </table>
+      <p class="helper">
+        You can adjust the Epic name per story. Excel export will use these values.
+      </p>
+    </div>
+
+    <div class="section-box">
+      <label>User Stories (plain text for copy)</label>
+      <textarea
+        id="userStoriesRaw"
+        style="margin-top: 6px; font-family: monospace;"
+        placeholder="User stories in plain text will appear here for easy copy..."
+      ></textarea>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">Email User Stories Excel (optional)</div>
+      <label for="usEmailTo">Recipient Email</label>
+      <input
+        type="text"
+        id="usEmailTo"
+        placeholder="someone@example.com"
+      />
+
+      <label for="usEmailSubject">Email Subject</label>
+      <input
+        type="text"
+        id="usEmailSubject"
+        placeholder="User Stories Excel"
+      />
+
+      <label for="usEmailBody">Email Message</label>
+      <textarea
+        id="usEmailBody"
+        placeholder="Message to include with the user stories Excel..."
+      ></textarea>
+
+      <button type="button" id="usEmailBtn">Send Excel by Email</button>
+      <div id="usEmailStatus" class="status"></div>
+      <p class="helper">
+        First click "Download as Excel" once. The latest generated Excel file will be emailed.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const generateStoriesBtn = document.getElementById("generateStoriesBtn");
+    const copyStoriesBtn = document.getElementById("copyStoriesBtn");
+    const downloadExcelBtn = document.getElementById("downloadExcelBtn");
+    const usStatus = document.getElementById("usStatus");
+    const userStoriesTableBody = document.getElementById("userStoriesTableBody");
+    const userStoriesRaw = document.getElementById("userStoriesRaw");
+    const brdDocxInput = document.getElementById("brdDocx");
+    const epicsSummary = document.getElementById("epicsSummary");
+
+    const usEmailBtn = document.getElementById("usEmailBtn");
+    const usEmailStatus = document.getElementById("usEmailStatus");
+
+    let userStoriesArray = []; // [{epic, story}]
+    let epicsArray = [];       // [{name, description}]
+    let lastUserStoriesFileId = null;
+
+    generateStoriesBtn.addEventListener("click", async () => {
+      usStatus.textContent = "";
+      usStatus.className = "status";
+      userStoriesTableBody.innerHTML = "";
+      userStoriesRaw.value = "";
+      epicsSummary.textContent = "Epics and their descriptions will appear here after generation.";
+      userStoriesArray = [];
+      epicsArray = [];
+
+      const projectName = document.getElementById("usProjectName").value || "";
+      const docType = document.getElementById("usDocType").value || "brd";
+
+      if (!brdDocxInput.files || !brdDocxInput.files[0]) {
+        usStatus.textContent = "Please upload a BRD .docx file first.";
+        usStatus.classList.add("status--error");
+        return;
+      }
+
+      const file = brdDocxInput.files[0];
+      const lowerName = file.name.toLowerCase();
+      if (!lowerName.endsWith(".docx")) {
+        usStatus.textContent = "Only .docx files are supported for BRD upload.";
+        usStatus.classList.add("status--error");
+        return;
+      }
+
+      generateStoriesBtn.disabled = true;
+      usStatus.textContent = "Uploading BRD and generating user stories with AI...";
+      usStatus.classList.remove("status--error", "status--success");
+
+      try {
+        const formData = new FormData();
+        formData.append("projectName", projectName);
+        formData.append("docType", docType);
+        formData.append("brdDocx", file);
+
+        const res = await fetch("/generate-user-stories", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg =
+            "Error: " + (err.error || "Could not generate user stories.");
+          usStatus.textContent = msg;
+          usStatus.classList.add("status--error");
+          generateStoriesBtn.disabled = false;
+          return;
+        }
+
+        const data = await res.json();
+        const stories = Array.isArray(data.userStories)
+          ? data.userStories
+          : [];
+        const epics = Array.isArray(data.epics) ? data.epics : [];
+
+        if (stories.length === 0) {
+          usStatus.textContent =
+            "AI did not return any user stories. Try using a more detailed BRD.";
+          usStatus.classList.add("status--error");
+          generateStoriesBtn.disabled = false;
+          return;
+        }
+
+        // Normalise and store
+        userStoriesArray = stories.map((s) => ({
+          epic: s.epic || "",
+          story: s.story || ""
+        }));
+
+        epicsArray = epics.map((e) => ({
+          name: e.name || "",
+          description: e.description || ""
+        }));
+
+        // Render epics summary
+        if (epicsArray.length > 0) {
+          epicsSummary.innerHTML = "";
+          const ul = document.createElement("ul");
+          epicsArray.forEach((e) => {
+            if (!e.name) return;
+            const li = document.createElement("li");
+            li.innerHTML = `<strong>${e.name}</strong> – ${e.description || ""}`;
+            ul.appendChild(li);
+          });
+          epicsSummary.appendChild(ul);
+        } else {
+          epicsSummary.textContent =
+            "No epics returned by AI. All stories may have been grouped under a general epic.";
+        }
+
+        // Render table with editable epics
+        userStoriesTableBody.innerHTML = "";
+        let rawText = "";
+        userStoriesArray.forEach((item, idx) => {
+          const tr = document.createElement("tr");
+
+          const epicTd = document.createElement("td");
+          const epicInput = document.createElement("input");
+          epicInput.type = "text";
+          epicInput.value = item.epic || "";
+          epicInput.addEventListener("input", (e) => {
+            userStoriesArray[idx].epic = e.target.value;
+          });
+          epicTd.appendChild(epicInput);
+
+          const storyTd = document.createElement("td");
+          storyTd.textContent = item.story;
+
+          tr.appendChild(epicTd);
+          tr.appendChild(storyTd);
+          userStoriesTableBody.appendChild(tr);
+
+          rawText += `US-${idx + 1} [Epic: ${item.epic || "N/A"}]: ${
+            item.story
+          }\n`;
+        });
+
+        userStoriesRaw.value = rawText.trim();
+
+        usStatus.textContent =
+          "User stories and epics generated successfully. You can edit epics and then download Excel.";
+        usStatus.classList.add("status--success");
+      } catch (err) {
+        console.error(err);
+        usStatus.textContent =
+          "Unexpected error while generating user stories.";
+        usStatus.classList.add("status--error");
+      } finally {
+        generateStoriesBtn.disabled = false;
+      }
+    });
+
+    copyStoriesBtn.addEventListener("click", () => {
+      if (!userStoriesRaw.value.trim()) {
+        usStatus.textContent =
+          "Nothing to copy yet. Generate user stories first.";
+        usStatus.classList.add("status--error");
+        return;
+      }
+      userStoriesRaw.select();
+      document.execCommand("copy");
+      usStatus.textContent = "User stories copied to clipboard.";
+      usStatus.classList.remove("status--error");
+      usStatus.classList.add("status--success");
+    });
+
+    downloadExcelBtn.addEventListener("click", async () => {
+      usStatus.textContent = "";
+      usStatus.className = "status";
+
+      if (!userStoriesArray || userStoriesArray.length === 0) {
+        usStatus.textContent =
+          "No user stories available. Generate them before downloading Excel.";
+        usStatus.classList.add("status--error");
+        return;
+      }
+
+      const projectName = document.getElementById("usProjectName").value || "";
+      const sprintLengthWeeks =
+        document.getElementById("sprintLengthWeeks")?.value || "2";
+      const sprintStart = document.getElementById("sprintStart")?.value || "";
+      const sprintEnd = document.getElementById("sprintEnd")?.value || "";
+
+      try {
+        const res = await fetch("/user-stories-xlsx", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectName,
+            userStories: userStoriesArray,
+            sprintLengthWeeks,
+            sprintStart,
+            sprintEnd
+          })
+        });
+
+        // capture fileId for email
+        const fileIdHeader = res.headers.get("X-Generated-File-Id");
+        if (fileIdHeader) {
+          lastUserStoriesFileId = fileIdHeader;
+        }
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg =
+            "Error downloading Excel: " +
+            (err.error || "Unknown error from server.");
+          usStatus.textContent = msg;
+          usStatus.classList.add("status--error");
+          return;
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+
+        const safeProject = (projectName || "user-stories")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+
+        a.download = `${safeProject || "user-stories"}-stories.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        usStatus.textContent = "Excel file downloaded successfully.";
+        usStatus.classList.add("status--success");
+      } catch (err) {
+        console.error(err);
+        usStatus.textContent =
+          "Unexpected error while downloading Excel file.";
+        usStatus.classList.add("status--error");
+      }
+    });
+
+    usEmailBtn.addEventListener("click", async () => {
+      usEmailStatus.textContent = "";
+      usEmailStatus.className = "status";
+
+      if (!lastUserStoriesFileId) {
+        usEmailStatus.textContent =
+          "Please generate and download the Excel at least once. The latest file will be emailed.";
+        usEmailStatus.classList.add("status--error");
+        return;
+      }
+
+      const to = (document.getElementById("usEmailTo").value || "").trim();
+      const subject =
+        (document.getElementById("usEmailSubject").value || "").trim();
+      const text = document.getElementById("usEmailBody").value || "";
+
+      if (!to) {
+        usEmailStatus.textContent = "Please enter a recipient email address.";
+        usEmailStatus.classList.add("status--error");
+        return;
+      }
+
+      usEmailBtn.disabled = true;
+      usEmailStatus.textContent = "Sending email...";
+      usEmailStatus.classList.remove("status--error", "status--success");
+
+      try {
+        const res = await fetch("/email-doc", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to,
+            subject,
+            text,
+            fileId: lastUserStoriesFileId
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Server error while sending email.");
+        }
+
+        usEmailStatus.textContent = "Email sent successfully.";
+        usEmailStatus.classList.add("status--success");
+      } catch (err) {
+        console.error(err);
+        usEmailStatus.textContent =
+          "Failed to send email: " + (err.message || "Unknown error");
+        usEmailStatus.classList.add("status--error");
+      } finally {
+        usEmailBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+

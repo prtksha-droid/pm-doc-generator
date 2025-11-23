@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PM Document Generator (DOCX Template + AI)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    p {
+      margin-top: 4px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea,
+    input[type="file"] {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      background: #ffffff;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .section {
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      background: #f9fafb;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: #ffffff;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .helper {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .status--error {
+      color: #b91c1c;
+    }
+    .status--success {
+      color: #166534;
+    }
+    code {
+      font-size: 12px;
+      background: #e5e7eb;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .checkbox-row input {
+      width: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Project Management Document Generator</h1>
+	<div class="nav">
+  <span>Navigation:</span>
+  <a href="/">Main Document Generator</a>
+  <a href="/user-stories.html">Create User Stories</a>
+</div>
+    <p>
+      Upload your <strong>DOCX template</strong> with placeholders like
+      <code>{projectName}</code>, <code>{background}</code>, <code>{requirements}</code>, etc.
+      Fill in the fields, optionally ask AI to structure your requirements, and generate a final
+      <strong>.docx</strong> that preserves the exact layout of your template.
+    </p>
+
+    <form id="docForm">
+      <!-- 1. Template upload -->
+      <div class="section">
+        <div class="section-title">1. DOCX Template</div>
+        <label for="templateDocx">Upload Template (.docx)</label>
+        <input
+          type="file"
+          id="templateDocx"
+          name="templateDocx"
+          accept=".docx"
+          required
+        />
+        <div class="helper">
+          This is your sample template. In Word, add placeholders like:
+          <code>{projectName}</code>, <code>{clientName}</code>, <code>{preparedBy}</code>,
+          <code>{date}</code>, <code>{version}</code>, <code>{background}</code>,
+          <code>{objectives}</code>, <code>{inScope}</code>, <code>{outScope}</code>,
+          <code>{stakeholders}</code>, <code>{highLevelReqs}</code>, <code>{assumptions}</code>,
+          <code>{risks}</code>, <code>{requirements}</code>, <code>{requirementsTextArea}</code>.
+        </div>
+      </div>
+
+      <!-- 2. Project info & doc type -->
+      <div class="section">
+        <div class="section-title">2. Project Info & Document Type</div>
+        <div class="grid grid-2">
+          <div>
+            <label for="projectName">Project Name*</label>
+            <input
+              type="text"
+              id="projectName"
+              name="projectName"
+              placeholder="e.g. New Mobile App Launch"
+              required
+            />
+          </div>
+          <div>
+            <label for="clientName">Client / Business Unit</label>
+            <input
+              type="text"
+              id="clientName"
+              name="clientName"
+              placeholder="e.g. Marketing Unit"
+            />
+          </div>
+          <div>
+            <label for="preparedBy">Prepared By</label>
+            <input
+              type="text"
+              id="preparedBy"
+              name="preparedBy"
+              placeholder="Your name / role"
+              autocomplete="off"
+            />
+          </div>
+          <div>
+            <label for="date">Document Date</label>
+            <input type="date" id="date" name="date" />
+          </div>
+          <div>
+            <label for="version">Version</label>
+            <input
+              type="text"
+              id="version"
+              name="version"
+              placeholder="e.g. 0.1 Draft"
+            />
+          </div>
+          <div>
+            <label for="docType">Document Type</label>
+            <select id="docType" name="docType">
+              <option value="brd">BRD</option>
+              <option value="frs">FRS</option>
+              <option value="sow">SOW</option>
+              <option value="raid">RAID</option>
+              <option value="status">Status</option>
+              <option value="minutes">Minutes</option>
+            </select>
+            <div class="helper">
+              This is mainly used in AI logic and file naming. Your DOCX template controls the layout.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Structured sections -->
+      <div class="section">
+        <div class="section-title">3. Structured Sections (mapped to placeholders)</div>
+        <div class="grid">
+          <div>
+            <label for="background">Background / Executive Summary ({background})</label>
+            <textarea
+              id="background"
+              name="background"
+              placeholder="Context, current process or system, key pain points..."
+            ></textarea>
+          </div>
+          <div>
+            <label for="objectives">Business Objectives ({objectives})</label>
+            <textarea
+              id="objectives"
+              name="objectives"
+              placeholder="What are we trying to achieve? Revenue, cost, CX, risk, compliance..."
+            ></textarea>
+          </div>
+          <div class="grid grid-2">
+            <div>
+              <label for="inScope">In Scope ({inScope})</label>
+              <textarea
+                id="inScope"
+                name="inScope"
+                placeholder="What is included in this initiative?"
+              ></textarea>
+            </div>
+            <div>
+              <label for="outScope">Out of Scope ({outScope})</label>
+              <textarea
+                id="outScope"
+                name="outScope"
+                placeholder="What is explicitly excluded?"
+              ></textarea>
+            </div>
+          </div>
+          <div>
+            <label for="stakeholders">Key Stakeholders & Users ({stakeholders})</label>
+            <textarea
+              id="stakeholders"
+              name="stakeholders"
+              placeholder="Sponsor, product owner, user groups, impacted teams..."
+            ></textarea>
+          </div>
+          <div>
+            <label for="highLevelReqs">High-Level Requirements ({highLevelReqs})</label>
+            <textarea
+              id="highLevelReqs"
+              name="highLevelReqs"
+              placeholder="BR-1, BR-2 etc. For FRS/SOW/RAID, this can be functional scope or key items."
+            ></textarea>
+          </div>
+          <div class="grid grid-2">
+            <div>
+              <label for="assumptions">Assumptions & Constraints ({assumptions})</label>
+              <textarea
+                id="assumptions"
+                name="assumptions"
+                placeholder="Dependencies, technical constraints, regulatory constraints..."
+              ></textarea>
+            </div>
+            <div>
+              <label for="risks">Key Risks & Mitigations ({risks})</label>
+              <textarea
+                id="risks"
+                name="risks"
+                placeholder="Top 3–5 risks, with mitigation strategies..."
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Requirements / Notes text + AI checkbox -->
+      <div class="section">
+        <div class="section-title">4. Requirements / Notes (textarea)</div>
+        <label for="requirements">Requirements / Notes ({requirementsTextArea})</label>
+        <textarea
+          id="requirements"
+          name="requirements"
+          placeholder="Paste raw requirements, notes, or user stories here."
+        ></textarea>
+        <div class="helper">
+          This text is available in the template via <code>{requirementsTextArea}</code>.
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="useAi" />
+          <label for="useAi" style="margin:0; font-weight:500;">
+            ✨ Write with AI (auto-clean & structure requirements into the sections above
+            based on the selected Document Type)
+          </label>
+        </div>
+        <div id="aiStatus" class="status"></div>
+      </div>
+
+      <!-- 5. Requirements attachment + mirrored AI option -->
+      <div class="section">
+        <div class="section-title">5. Requirements Attachment (optional)</div>
+        <label for="requirementsFile">Upload Requirements File (.txt or .docx)</label>
+        <input
+          type="file"
+          id="requirementsFile"
+          name="requirementsFile"
+          accept=".txt,.docx"
+        />
+        <div class="helper">
+          • If you upload a <strong>.txt</strong> file, its contents will be loaded automatically into the Requirements textarea above for AI processing.<br/>
+          • <strong>.docx</strong> files are parsed on the server and inserted into <code>{requirements}</code> in the template.<br/>
+          • AI uses the textarea text for structuring; you can still combine both.
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="useAi2" />
+          <label for="useAi2" style="margin:0; font-weight:500;">
+            ✨ Write with AI (same option as above – uses the Requirements textarea, so you can load TXT file here and let AI structure it)
+          </label>
+        </div>
+        <div id="aiStatus2" class="status"></div>
+      </div>
+
+      <!-- 6. Submit -->
+      <div class="section">
+        <button type="submit" id="generateBtn">Generate DOCX from Template</button>
+        <div id="status" class="status"></div>
+      </div>
+    </form>
+  </div>
+
+ <script>
+  // Auto-fill today's date on load if empty
+  document.addEventListener("DOMContentLoaded", () => {
+    const dateInput = document.getElementById("date");
+    if (dateInput && !dateInput.value) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+  });
+
+  const form = document.getElementById("docForm");
+  const statusEl = document.getElementById("status");
+  const generateBtn = document.getElementById("generateBtn");
+  const aiStatus = document.getElementById("aiStatus");
+  const aiStatus2 = document.getElementById("aiStatus2");
+  const useAiCheckbox = document.getElementById("useAi");
+  const useAiCheckbox2 = document.getElementById("useAi2");
+  const requirementsFileInput = document.getElementById("requirementsFile");
+  const requirementsTextarea = document.getElementById("requirements");
+
+  // Keep the two AI checkboxes in sync
+  if (useAiCheckbox && useAiCheckbox2) {
+    useAiCheckbox.addEventListener("change", () => {
+      useAiCheckbox2.checked = useAiCheckbox.checked;
+    });
+    useAiCheckbox2.addEventListener("change", () => {
+      useAiCheckbox.checked = useAiCheckbox2.checked;
+    });
+  }
+
+  // Auto-load TXT file into requirements textarea
+  if (requirementsFileInput && requirementsTextarea) {
+    requirementsFileInput.addEventListener("change", () => {
+      if (aiStatus2) {
+        aiStatus2.textContent = "";
+        aiStatus2.className = "status";
+      }
+
+      const file = requirementsFileInput.files[0];
+      if (!file) return;
+
+      const lowerName = file.name.toLowerCase();
+      const mime = file.type || "";
+
+      if (mime === "text/plain" || lowerName.endsWith(".txt")) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          requirementsTextarea.value = e.target.result || "";
+          if (aiStatus2) {
+            aiStatus2.textContent =
+              "TXT requirements file loaded into the textarea above. You can now enable 'Write with AI'.";
+            aiStatus2.classList.add("status--success");
+          }
+        };
+        reader.onerror = () => {
+          if (aiStatus2) {
+            aiStatus2.textContent =
+              "Could not read the TXT file in the browser.";
+            aiStatus2.classList.add("status--error");
+          }
+        };
+        reader.readAsText(file);
+      } else if (lowerName.endsWith(".docx")) {
+        if (aiStatus2) {
+          aiStatus2.textContent =
+            "DOCX will be used on the server side for {requirements}. If you want AI to structure it, please paste its text into the textarea above.";
+          aiStatus2.classList.add("status--success");
+        }
+      } else {
+        if (aiStatus2) {
+          aiStatus2.textContent =
+            "Unsupported file type for auto-loading. Only .txt is loaded into the textarea.";
+          aiStatus2.classList.add("status--error");
+        }
+      }
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    statusEl.textContent = "";
+    statusEl.className = "status";
+    aiStatus.textContent = "";
+    aiStatus.className = "status";
+    if (aiStatus2) {
+      aiStatus2.textContent = "";
+      aiStatus2.className = "status";
+    }
+
+    const templateInput = document.getElementById("templateDocx");
+    if (!templateInput.files || !templateInput.files[0]) {
+      statusEl.textContent = "Please upload a DOCX template.";
+      statusEl.classList.add("status--error");
+      return;
+    }
+
+    generateBtn.disabled = true;
+    statusEl.textContent = "Preparing document...";
+    statusEl.classList.remove("status--error", "status--success");
+
+    try {
+      const useAi =
+        (useAiCheckbox && useAiCheckbox.checked) ||
+        (useAiCheckbox2 && useAiCheckbox2.checked);
+
+      // If "Write with AI" is checked, call /ai-draft first
+      if (useAi) {
+        const projectName =
+          document.getElementById("projectName").value || "";
+        const docType = document.getElementById("docType").value || "brd";
+        const requirementsText =
+          document.getElementById("requirements").value || "";
+
+        if (!requirementsText.trim()) {
+          aiStatus.textContent =
+            "Please provide some requirements text before using AI.";
+          aiStatus.classList.add("status--error");
+          if (aiStatus2) {
+            aiStatus2.textContent = aiStatus.textContent;
+            aiStatus2.className = aiStatus.className;
+          }
+          generateBtn.disabled = false;
+          return;
+        }
+
+        aiStatus.textContent =
+          "Calling AI to clean and structure requirements...";
+        aiStatus.classList.remove("status--error", "status--success");
+        if (aiStatus2) {
+          aiStatus2.textContent = aiStatus.textContent;
+          aiStatus2.className = aiStatus.className;
+        }
+
+        const res = await fetch("/ai-draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectName,
+            docType,
+            requirementsText
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg =
+            "AI error: " + (err.error || "Unknown error from AI.");
+          aiStatus.textContent = msg;
+          aiStatus.classList.add("status--error");
+          if (aiStatus2) {
+            aiStatus2.textContent = msg;
+            aiStatus2.className = aiStatus.className;
+          }
+          generateBtn.disabled = false;
+          return;
+        }
+
+        const data = await res.json();
+
+        const setIfExists = (id, value) => {
+          if (!value) return;
+          const el = document.getElementById(id);
+          if (el) el.value = value;
+        };
+
+        if (data.cleanedRequirements) {
+          const reqEl = document.getElementById("requirements");
+          if (reqEl) reqEl.value = data.cleanedRequirements;
+        }
+
+        setIfExists("background", data.background);
+        setIfExists("objectives", data.objectives);
+        setIfExists("inScope", data.inScope);
+        setIfExists("outScope", data.outScope);
+        setIfExists("stakeholders", data.stakeholders);
+        setIfExists("highLevelReqs", data.highLevelReqs);
+        setIfExists("assumptions", data.assumptions);
+        setIfExists("risks", data.risks);
+
+        aiStatus.textContent =
+          "AI has cleaned and structured the requirements into the sections above.";
+        aiStatus.classList.add("status--success");
+        if (aiStatus2) {
+          aiStatus2.textContent = aiStatus.textContent;
+          aiStatus2.className = aiStatus.className;
+        }
+      }
+
+      // 🔁 ALWAYS infer stakeholders before sending to server (AI or no AI)
+      const stakeholdersEl = document.getElementById("stakeholders");
+      if (stakeholdersEl && !stakeholdersEl.value.trim()) {
+        const clientNameVal =
+          (document.getElementById("clientName").value || "").trim();
+        const reqTextRaw =
+          document.getElementById("requirements").value || "";
+        const reqText = reqTextRaw.toLowerCase();
+
+        const inferred = [];
+
+        // 1) Use Client / Business Unit directly if present
+        if (clientNameVal) {
+          inferred.push(clientNameVal);
+        }
+
+        // 2) Look for specific phrases like "marketing unit", "marketing team" etc.
+        const phrasePatterns = [
+          "marketing unit",
+          "marketing team",
+          "digital marketing team",
+          "brand team",
+          "brand marketing",
+          "sales team",
+          "sales unit",
+          "operations team",
+          "customer support",
+          "customer service",
+          "service desk"
+        ];
+
+        phrasePatterns.forEach((p) => {
+          if (reqText.includes(p)) {
+            const label = p
+              .split(" ")
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(" ");
+            if (!inferred.some((x) => x.toLowerCase().includes(p))) {
+              inferred.push(label);
+            }
+          }
+        });
+
+        // 3) Broader department words -> "X Team"
+        const deptWords = [
+          "marketing",
+          "sales",
+          "operations",
+          "finance",
+          "hr",
+          "human resources",
+          "it",
+          "engineering",
+          "product",
+          "support"
+        ];
+
+        deptWords.forEach((w) => {
+          if (reqText.includes(w)) {
+            const label = w
+              .split(" ")
+              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+              .join(" ");
+            if (!inferred.some((x) => x.toLowerCase().includes(w))) {
+              inferred.push(label + " Team");
+            }
+          }
+        });
+
+        if (inferred.length > 0) {
+          stakeholdersEl.value = inferred.join("\n");
+        }
+      }
+
+      // Now build FormData for /generate-docx
+      const formData = new FormData(form);
+      const response = await fetch("/generate-docx", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        statusEl.textContent = "Error: " + errText;
+        statusEl.classList.add("status--error");
+        generateBtn.disabled = false;
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+
+      const projectName =
+        (document.getElementById("projectName").value || "document")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+
+      const docType = document.getElementById("docType").value || "brd";
+      a.download = `${projectName || "document"}-${docType}-generated.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      statusEl.textContent =
+        "Document generated and downloaded successfully.";
+      statusEl.classList.add("status--success");
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = "Unexpected error generating document.";
+      statusEl.classList.add("status--error");
+    } finally {
+      generateBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
