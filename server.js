@@ -40,6 +40,26 @@ function maybeMulterAny(req, res, next) {
   return next();
 }
 
+
+function getUploadedText(req) {
+  // Works for memory uploads (uploadMemory.any())
+  const files = req.files || [];
+  if (!files.length) return "";
+
+  // Take the first file; you can later support multiple
+  const f = files[0];
+
+  // If memoryStorage: f.buffer exists
+  if (f.buffer) return f.buffer.toString("utf8").trim();
+
+  // If disk storage: read from f.path
+  if (f.path && fs.existsSync(f.path)) {
+    return fs.readFileSync(f.path, "utf8").trim();
+  }
+
+  return "";
+}
+
 /* =========================
    OPENAI
 ========================= */
@@ -251,14 +271,21 @@ if (!resolvedAtlassianEmail || !resolvedAtlassianApiToken) {
     let finalHtml = (htmlContent || "").toString().trim();
 
     if (!finalHtml) {
-      const reqText = (requirementsText || "").toString().trim();
-      if (!reqText) {
-        return res.status(400).json({
-          error:
-            "Empty content: provide htmlContent OR requirementsText to generate BRD",
-        });
-      }
-      finalHtml = await generateBrdHtml({ requirementsText: reqText, title: safeTitle });
+      let reqText = (requirementsText || "").toString().trim();
+
+// ✅ If user uploaded a file, use it as requirements text
+if (!reqText) {
+  reqText = getUploadedText(req);
+}
+
+if (!reqText) {
+  return res.status(400).json({
+    error: "Empty content: provide htmlContent OR requirementsText OR upload a text file",
+  });
+}
+
+finalHtml = await generateBrdHtml({ requirementsText: reqText, title: safeTitle });
+
 
       if (!finalHtml) {
         return res.status(500).json({ error: "BRD generation returned empty output" });
