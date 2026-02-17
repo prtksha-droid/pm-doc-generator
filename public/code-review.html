@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Scrum Book – Automated Code Review</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <link rel="stylesheet" href="chat-widget.css">
+<script src="chat-widget.js" defer></script>
+
+  <!-- Make sure this points to the same CSS file used by your other pages -->
+  
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    p {
+      margin: 4px 0 12px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input[type="file"],
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      background: #ffffff;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: #ffffff;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .nav a {
+      text-decoration: none;
+      color: #2563eb;
+      font-weight: 500;
+    }
+    .section-box {
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      background: #f9fafb;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+    .helper {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .status--error {
+      color: #b91c1c;
+    }
+    .status--success {
+      color: #166534;
+    }
+
+    /* Branding */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      font-size: 26px;
+    }
+    .app-name {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .app-tagline {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .app-footer {
+      margin-top: 18px;
+      font-size: 11px;
+      text-align: center;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Top header, same style as other pages -->
+    <header class="app-header">
+      <div class="logo-row">
+        <span class="logo-icon">📘</span>
+        <div>
+          <div class="app-name">The Scrum Book</div>
+          <div class="app-tagline">Automated Code Review (Trial)</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation bar consistent with other pages -->
+    <div class="nav">
+      <a href="index.html">← Back to Main</a>
+      <span>·</span>
+      <a href="user-stories.html">User Stories</a>
+      <span>·</span>
+      <a href="sprint-review.html">Sprint Review</a>
+      <span>·</span>
+      <a href="sprint-retro.html">Sprint Retro</a>
+      <span>·</span>
+      <span style="font-weight:700;">Code Review</span>
+
+    </div>
+
+    <!-- Optional trial banner -->
+    <div class="trial-banner">
+      This is a <strong>beta</strong> feature: Automated Code Review.  
+      Trial limit: up to <strong>3 runs per browser</strong>.
+    </div>
+
+    <!-- Section 1: Code details -->
+    <div class="section-box">
+      <div class="section-title">1. Code Details</div>
+
+      <label for="language">Language</label>
+      <select id="language">
+        <option value="JavaScript">JavaScript</option>
+        <option value="TypeScript">TypeScript</option>
+        <option value="Python">Python</option>
+        <option value="Java">Java</option>
+        <option value="C#">C#</option>
+        <option value="C++">C++</option>
+        <option value="PHP">PHP</option>
+        <option value="Other">Other / Mixed</option>
+      </select>
+
+      <label for="context" style="margin-top:8px;">Context (optional)</label>
+      <input
+        type="text"
+        id="context"
+        placeholder="e.g., Backend API, React component, Unit tests..."
+      />
+    </div>
+
+    <!-- Section 2: Code input -->
+    <div class="section-box">
+      <div class="section-title">2. Provide Code</div>
+
+      <label for="codeInput">Paste Code</label>
+      <textarea
+        id="codeInput"
+        class="code-input"
+        placeholder="Paste your code here for review..."
+      ></textarea>
+      <div class="helper">
+        For now, this page supports pasted code. (You can later extend it to support file uploads.)
+      </div>
+    </div>
+
+    <!-- Section 3: Run review + output -->
+    <div class="section-box">
+      <div class="section-title">3. Run AI Code Review</div>
+      <button id="runReviewBtn">Run AI Code Review</button>
+      <div id="status" class="status"></div>
+
+      <div class="section-title" style="margin-top:12px;">Review Output</div>
+      <div id="reviewOutput" class="output-box"></div>
+
+      <button id="copyReviewBtn" class="secondary">Copy Review</button>
+      <div id="copyStatus" class="status"></div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    Automated Code Review · Part of The Scrum Book
+  </footer>
+
+  <script>
+    const languageEl = document.getElementById("language");
+    const contextEl = document.getElementById("context");
+    const codeInputEl = document.getElementById("codeInput");
+    const statusEl = document.getElementById("status");
+    const reviewOutputEl = document.getElementById("reviewOutput");
+    const runBtn = document.getElementById("runReviewBtn");
+    const copyBtn = document.getElementById("copyReviewBtn");
+    const copyStatusEl = document.getElementById("copyStatus");
+
+    const TRIAL_CODE_REVIEW_LIMIT = 3;
+
+    runBtn.addEventListener("click", async () => {
+      statusEl.textContent = "";
+      statusEl.className = "status";
+
+      const used = parseInt(
+        localStorage.getItem("scrumBook_codeReview_used") || "0",
+        10
+      );
+      if (used >= TRIAL_CODE_REVIEW_LIMIT) {
+        statusEl.textContent =
+          "Trial limit reached for code reviews on this browser. Please contact Pratiksha for full access.";
+        statusEl.classList.add("status--error");
+        return;
+      }
+
+      const language = languageEl.value;
+      const context = contextEl.value.trim() || "general";
+      const code = codeInputEl.value.trim();
+
+      if (!code || code.length < 10) {
+        statusEl.textContent = "Please paste at least a few lines of code.";
+        statusEl.classList.add("status--error");
+        return;
+      }
+
+      runBtn.disabled = true;
+      statusEl.textContent = "Running AI code review...";
+      try {
+        const res = await fetch("/code-review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ language, context, code })
+        });
+
+        if (!res.ok) {
+          throw new Error("Server error while running code review.");
+        }
+
+        const data = await res.json();
+        reviewOutputEl.textContent = data.review || "(No review returned)";
+
+        const newUsed = used + 1;
+        localStorage.setItem(
+          "scrumBook_codeReview_used",
+          String(newUsed)
+        );
+        statusEl.textContent = `Code review completed. Trial usage: ${newUsed}/${TRIAL_CODE_REVIEW_LIMIT}`;
+        statusEl.classList.add("status--success");
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error: " + err.message;
+        statusEl.classList.add("status--error");
+      } finally {
+        runBtn.disabled = false;
+      }
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      const text = reviewOutputEl.textContent || "";
+      copyStatusEl.textContent = "";
+      copyStatusEl.className = "status";
+      if (!text) {
+        copyStatusEl.textContent = "Nothing to copy.";
+        copyStatusEl.classList.add("status--error");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        copyStatusEl.textContent = "Review copied to clipboard.";
+        copyStatusEl.classList.add("status--success");
+      } catch {
+        copyStatusEl.textContent = "Failed to copy.";
+        copyStatusEl.classList.add("status--error");
+      }
+    });
+  </script>
+</body>
+</html>

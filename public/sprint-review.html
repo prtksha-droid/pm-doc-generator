@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Scrum Book – Sprint Review (AI)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="chat-widget.css">
+<script src="chat-widget.js" defer></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    p {
+      margin: 4px 0 12px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input[type="file"],
+    select,
+    textarea,
+    input[type="text"] {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      background: #ffffff;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: #ffffff;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .nav {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .nav a {
+      text-decoration: none;
+      color: #2563eb;
+      font-weight: 500;
+    }
+    .section-box {
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      background: #f9fafb;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .status--error {
+      color: #b91c1c;
+    }
+    .status--success {
+      color: #166534;
+    }
+    .helper {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 6px 8px;
+      vertical-align: top;
+    }
+    th {
+      background: #f3f4f6;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    /* The Scrum Book branding */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      font-size: 26px;
+    }
+    .app-name {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .app-tagline {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .app-footer {
+      margin-top: 18px;
+      font-size: 11px;
+      text-align: center;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <div class="logo-row">
+        <span class="logo-icon">📘</span>
+        <div class="logo-text">
+          <div class="app-name">The Scrum Book</div>
+          <div class="app-tagline">AI-powered Agile documentation &amp; delivery toolkit</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Keep for accessibility/SEO but visually hidden -->
+    <h1 style="display:none;">The Scrum Book – AI Sprint Review</h1>
+<div class="nav">
+  <span>Navigation:</span>
+  <a href="/">Main – Document Generator</a>
+  <a href="/user-stories.html">User Stories &amp; Epics</a>
+  <a href="/sprint-review.html">Sprint Review (AI)</a>
+  <a href="/sprint-retro.html">Sprint Retrospective (AI)</a>
+  <a href="/code-review.html">Code Review (Beta)</a>
+
+</div>
+
+
+    <p>
+      Upload your <strong>User Stories Excel</strong> (with Sprint, Status, Story Points, Blocker columns)
+      and let AI create a Sprint Review summary and a client-ready Sprint Review Word document,
+      all inside <strong>The Scrum Book</strong>.
+    </p>
+
+    <!-- 1. Upload & Sprint selection -->
+    <div class="section-box">
+      <div class="section-title">1. Data Source</div>
+
+      <label for="srExcel">User Stories Excel (.xlsx)</label>
+      <input type="file" id="srExcel" accept=".xlsx" />
+
+      <p class="helper">
+        Use the Excel exported from the User Stories page (it should contain columns like:
+        ID, Epic, User Story, Story Points, Sprint, Status, Blocker, Suggested Solution).
+      </p>
+
+      <button id="loadSprintsBtn">Load Sprints</button>
+
+      <label for="srSprintSelect" style="margin-top: 12px;">Select Sprint</label>
+      <select id="srSprintSelect">
+        <option value="">-- No sprints loaded yet --</option>
+      </select>
+
+      <div id="srSourceStatus" class="status"></div>
+    </div>
+
+    <!-- 2. Metrics & AI Summary -->
+    <div class="section-box">
+      <div class="section-title">2. Sprint Metrics & AI Summary</div>
+
+      <button id="analyzeSprintBtn">Analyze Sprint with AI</button>
+      <div id="srAnalyzeStatus" class="status"></div>
+
+      <div style="margin-top: 12px;">
+        <h3 style="margin: 4px 0;">Sprint Snapshot</h3>
+        <p id="srMetricsText" class="helper">
+          Sprint metrics will appear here after analysis.
+        </p>
+      </div>
+
+      <label for="srGoal">Sprint Goal (AI + editable)</label>
+      <textarea id="srGoal"></textarea>
+
+      <label for="srWentWell" style="margin-top: 8px;">What Went Well</label>
+      <textarea id="srWentWell"></textarea>
+
+      <label for="srDidNotGoWell" style="margin-top: 8px;">What Didn’t Go Well</label>
+      <textarea id="srDidNotGoWell"></textarea>
+
+      <label for="srBlockers" style="margin-top: 8px;">Blockers & Risks</label>
+      <textarea id="srBlockers"></textarea>
+
+      <label for="srRecommendations" style="margin-top: 8px;">Recommendations / Next Sprint Focus</label>
+      <textarea id="srRecommendations"></textarea>
+
+      <label for="srDemo" style="margin-top: 8px;">Demo Highlights</label>
+      <textarea id="srDemo"></textarea>
+    </div>
+
+    <!-- 3. Stories for this Sprint -->
+    <div class="section-box">
+      <div class="section-title">3. Stories in this Sprint</div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Epic</th>
+            <th>User Story</th>
+            <th>Story Points</th>
+            <th>Status</th>
+            <th>Blocker</th>
+          </tr>
+        </thead>
+        <tbody id="srStoriesTableBody"></tbody>
+      </table>
+      <p class="helper">
+        This is read-only; it shows the subset of your Excel that belongs to the selected sprint.
+      </p>
+    </div>
+
+    <!-- 4. Export -->
+    <div class="section-box">
+      <div class="section-title">4. Export Sprint Review Document</div>
+
+      <label for="srProjectName">Project Name (for the document)</label>
+      <input
+        type="text"
+        id="srProjectName"
+        placeholder="e.g. Global Marketing Website Revamp"
+      />
+
+      <button id="downloadSprintDocBtn">Download Sprint Review (DOCX)</button>
+      <div id="srDocStatus" class="status"></div>
+    </div>
+  </div>
+
+  <footer class="app-footer">Built with ❤️ by Pratiksha Bhattacharyya · The Scrum Book</footer>
+
+  <script>
+    const srExcelInput = document.getElementById("srExcel");
+    const loadSprintsBtn = document.getElementById("loadSprintsBtn");
+    const srSprintSelect = document.getElementById("srSprintSelect");
+    const srSourceStatus = document.getElementById("srSourceStatus");
+
+    const analyzeSprintBtn = document.getElementById("analyzeSprintBtn");
+    const srAnalyzeStatus = document.getElementById("srAnalyzeStatus");
+    const srMetricsText = document.getElementById("srMetricsText");
+    const srStoriesTableBody = document.getElementById("srStoriesTableBody");
+
+    const srGoal = document.getElementById("srGoal");
+    const srWentWell = document.getElementById("srWentWell");
+    const srDidNotGoWell = document.getElementById("srDidNotGoWell");
+    const srBlockers = document.getElementById("srBlockers");
+    const srRecommendations = document.getElementById("srRecommendations");
+    const srDemo = document.getElementById("srDemo");
+
+    const srProjectName = document.getElementById("srProjectName");
+    const downloadSprintDocBtn = document.getElementById("downloadSprintDocBtn");
+    const srDocStatus = document.getElementById("srDocStatus");
+
+    let lastSprintStories = [];
+    let lastMetrics = null;
+
+    function getSelectedExcelFile() {
+      if (!srExcelInput.files || !srExcelInput.files[0]) {
+        return null;
+      }
+      return srExcelInput.files[0];
+    }
+
+    // 1) Load sprints from Excel
+    loadSprintsBtn.addEventListener("click", async () => {
+      srSourceStatus.textContent = "";
+      srSourceStatus.className = "status";
+
+      const file = getSelectedExcelFile();
+      if (!file) {
+        srSourceStatus.textContent = "Please upload a User Stories Excel file first.";
+        srSourceStatus.classList.add("status--error");
+        return;
+      }
+
+      loadSprintsBtn.disabled = true;
+      srSourceStatus.textContent = "Reading Excel and loading sprints...";
+      srSourceStatus.classList.remove("status--error", "status--success");
+
+      try {
+        const formData = new FormData();
+        formData.append("sprintExcel", file);
+
+        const res = await fetch("/sprint-review-sprints", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Could not read sprints from Excel.");
+        }
+
+        const data = await res.json();
+        const sprints = Array.isArray(data.sprints) ? data.sprints : [];
+
+        srSprintSelect.innerHTML = "";
+        if (sprints.length === 0) {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = "-- No sprint values found in Excel --";
+          srSprintSelect.appendChild(opt);
+          srSourceStatus.textContent =
+            "No Sprint column or empty sprint values found. Please check your Excel.";
+          srSourceStatus.classList.add("status--error");
+        } else {
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "-- Select a Sprint --";
+          srSprintSelect.appendChild(placeholder);
+
+          sprints.forEach((s) => {
+            const opt = document.createElement("option");
+            opt.value = s;
+            opt.textContent = s;
+            srSprintSelect.appendChild(opt);
+          });
+
+          srSourceStatus.textContent = "Sprints loaded. Please select one from the dropdown.";
+          srSourceStatus.classList.add("status--success");
+        }
+      } catch (err) {
+        console.error(err);
+        srSourceStatus.textContent = "Error loading sprints: " + err.message;
+        srSourceStatus.classList.add("status--error");
+      } finally {
+        loadSprintsBtn.disabled = false;
+      }
+    });
+
+    // 2) Analyze sprint with AI
+    analyzeSprintBtn.addEventListener("click", async () => {
+      srAnalyzeStatus.textContent = "";
+      srAnalyzeStatus.className = "status";
+      srMetricsText.textContent = "Sprint metrics will appear here after analysis.";
+      srStoriesTableBody.innerHTML = "";
+      lastSprintStories = [];
+      lastMetrics = null;
+
+      const file = getSelectedExcelFile();
+      if (!file) {
+        srAnalyzeStatus.textContent = "Please upload a User Stories Excel file first.";
+        srAnalyzeStatus.classList.add("status--error");
+        return;
+      }
+
+      const sprintName = srSprintSelect.value;
+      if (!sprintName) {
+        srAnalyzeStatus.textContent = "Please select a Sprint.";
+        srAnalyzeStatus.classList.add("status--error");
+        return;
+      }
+
+      analyzeSprintBtn.disabled = true;
+      srAnalyzeStatus.textContent = "Analyzing sprint with AI...";
+      srAnalyzeStatus.classList.remove("status--error", "status--success");
+
+      try {
+        const formData = new FormData();
+        formData.append("sprintExcel", file);
+        formData.append("sprintName", sprintName);
+
+        const res = await fetch("/sprint-review-analyze", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Could not analyze sprint.");
+        }
+
+        const data = await res.json();
+        const metrics = data.metrics || {};
+        const ai = data.aiSummary || {};
+        const stories = Array.isArray(data.stories) ? data.stories : [];
+
+        lastSprintStories = stories;
+        lastMetrics = metrics;
+
+        // Metrics text
+        const plannedPoints = metrics.plannedPoints ?? 0;
+        const completedPoints = metrics.completedPoints ?? 0;
+        const completion = metrics.completionPercent ?? 0;
+        const plannedCount = metrics.plannedCount ?? 0;
+        const completedCount = metrics.completedCount ?? 0;
+
+        srMetricsText.textContent =
+          `Sprint: ${sprintName} | ` +
+          `Planned Stories: ${plannedCount}, Completed Stories: ${completedCount} | ` +
+          `Planned Points: ${plannedPoints}, Completed Points: ${completedPoints} ` +
+          `(Completion: ${completion.toFixed ? completion.toFixed(1) : completion}% )`;
+
+        // Fill textareas from AI summary
+        srGoal.value = ai.sprintGoal || "";
+        srWentWell.value = Array.isArray(ai.whatWentWell)
+          ? ai.whatWentWell.join("\n• ")
+          : ai.whatWentWell || "";
+        srDidNotGoWell.value = Array.isArray(ai.whatDidNotGoWell)
+          ? ai.whatDidNotGoWell.join("\n• ")
+          : ai.whatDidNotGoWell || "";
+        srBlockers.value = Array.isArray(ai.blockersSummary)
+          ? ai.blockersSummary.join("\n• ")
+          : ai.blockersSummary || ai.risks || "";
+        srRecommendations.value = Array.isArray(ai.recommendations)
+          ? ai.recommendations.join("\n• ")
+          : ai.recommendations || "";
+        srDemo.value = Array.isArray(ai.demoHighlights)
+          ? ai.demoHighlights.join("\n• ")
+          : ai.demoHighlights || "";
+
+        // Render stories table
+        srStoriesTableBody.innerHTML = "";
+        stories.forEach((s) => {
+          const tr = document.createElement("tr");
+
+          const addCell = (text) => {
+            const td = document.createElement("td");
+            td.textContent = text || "";
+            tr.appendChild(td);
+          };
+
+          addCell(s.id);
+          addCell(s.epic);
+          addCell(s.story);
+          addCell(s.storyPoints != null ? s.storyPoints : "");
+          addCell(s.status);
+          addCell(s.blocker);
+
+          srStoriesTableBody.appendChild(tr);
+        });
+
+        srAnalyzeStatus.textContent =
+          "Sprint analysis complete. You can refine the text and then export the Sprint Review DOCX.";
+        srAnalyzeStatus.classList.add("status--success");
+      } catch (err) {
+        console.error(err);
+        srAnalyzeStatus.textContent = "Error analyzing sprint: " + err.message;
+        srAnalyzeStatus.classList.add("status--error");
+      } finally {
+        analyzeSprintBtn.disabled = false;
+      }
+    });
+
+    // 3) Download Sprint Review DOCX
+    downloadSprintDocBtn.addEventListener("click", async () => {
+      srDocStatus.textContent = "";
+      srDocStatus.className = "status";
+
+      const file = getSelectedExcelFile();
+      if (!file) {
+        srDocStatus.textContent = "Please upload a User Stories Excel file first.";
+        srDocStatus.classList.add("status--error");
+        return;
+      }
+
+      const sprintName = srSprintSelect.value;
+      if (!sprintName) {
+        srDocStatus.textContent = "Please select a Sprint.";
+        srDocStatus.classList.add("status--error");
+        return;
+      }
+
+      const projectName = (srProjectName.value || "").trim();
+      if (!projectName) {
+        srDocStatus.textContent = "Please enter a Project Name for the document.";
+        srDocStatus.classList.add("status--error");
+        return;
+      }
+
+      downloadSprintDocBtn.disabled = true;
+      srDocStatus.textContent = "Generating Sprint Review DOCX...";
+      srDocStatus.classList.remove("status--error", "status--success");
+
+      try {
+        const formData = new FormData();
+        formData.append("sprintExcel", file);
+        formData.append("sprintName", sprintName);
+        formData.append("projectName", projectName);
+        formData.append("sprintGoal", srGoal.value || "");
+        formData.append("whatWentWell", srWentWell.value || "");
+        formData.append("whatDidNotGoWell", srDidNotGoWell.value || "");
+        formData.append("blockers", srBlockers.value || "");
+        formData.append("recommendations", srRecommendations.value || "");
+        formData.append("demoHighlights", srDemo.value || "");
+
+        const res = await fetch("/sprint-review-docx", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Could not generate Sprint Review document.");
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+
+        const safeProject = projectName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+
+        a.href = url;
+        a.download = `${safeProject || "project"}-${sprintName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")}-sprint-review.docx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        srDocStatus.textContent =
+          "Sprint Review DOCX generated and downloaded successfully.";
+        srDocStatus.classList.add("status--success");
+      } catch (err) {
+        console.error(err);
+        srDocStatus.textContent = "Error generating Sprint Review DOCX: " + err.message;
+        srDocStatus.classList.add("status--error");
+      } finally {
+        downloadSprintDocBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+/* Floating Chat Widget - The Scrum Book */
+
+.ssb-chat-btn {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.ssb-chat-panel {
+  position: fixed;
+  right: 18px;
+  bottom: 86px;
+  width: 360px;
+  max-width: calc(100vw - 36px);
+  height: 520px;
+  max-height: calc(100vh - 130px);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+  z-index: 9999;
+  overflow: hidden;
+  display: none;
+}
+
+.ssb-chat-panel.open { display: flex; flex-direction: column; }
+
+.ssb-chat-header {
+  padding: 10px 12px;
+  background: #111827;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ssb-chat-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.ssb-chat-title strong { font-size: 13px; }
+.ssb-chat-title span { font-size: 11px; opacity: 0.85; }
+
+.ssb-chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ssb-chat-actions button {
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border-radius: 10px;
+  padding: 6px 9px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ssb-chat-body {
+  padding: 10px;
+  flex: 1;
+  overflow: auto;
+  background: #f9fafb;
+}
+
+.ssb-msg {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  max-width: 90%;
+  white-space: pre-wrap;
+  font-size: 12.5px;
+}
+
+.ssb-user {
+  background: #2563eb;
+  color: #fff;
+  margin-left: auto;
+}
+
+.ssb-bot {
+  background: #fff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+.ssb-chat-footer {
+  padding: 10px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 8px;
+}
+
+.ssb-chat-footer textarea {
+  flex: 1;
+  resize: none;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  outline: none;
+}
+
+.ssb-chat-footer button {
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 12px;
+  padding: 0 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ssb-mode {
+  font-size: 12px;
+  border-radius: 10px;
+  border: none;
+  padding: 6px 8px;
+}

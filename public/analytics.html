@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Scrum Book – Analytics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Same chat widget as other pages -->
+  <link rel="stylesheet" href="chat-widget.css">
+  <script src="chat-widget.js" defer></script>
+
+  <!-- SAME STYLES AS index.html -->
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      font-size: 26px;
+    }
+    .app-name {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .app-tagline {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .nav a {
+      text-decoration: none;
+      color: #2563eb;
+      font-weight: 500;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    p {
+      margin-top: 4px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+
+    .section {
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      background: #f9fafb;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+
+    .dashboard-wrapper {
+      height: 75vh;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .app-footer {
+      margin-top: 18px;
+      font-size: 11px;
+      text-align: center;
+      color: #6b7280;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- HEADER (same as index.html) -->
+    <header class="app-header">
+      <div class="logo-row">
+        <span class="logo-icon">📘</span>
+        <div>
+          <div class="app-name">The Scrum Book</div>
+          <div class="app-tagline">
+            AI-powered Agile documentation &amp; delivery toolkit
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- NAVIGATION (same as index.html, Analytics highlighted by context) -->
+    <div class="nav">
+      <span>Navigation:</span>
+      <a href="/">Main – Document Generator</a>
+      <a href="/user-stories.html">User Stories &amp; Epics</a>
+      <a href="/sprint-review.html">Sprint Review (AI)</a>
+      <a href="/sprint-retro.html">Sprint Retrospective (AI)</a>
+      <a href="/code-review.html">Code Review (Beta)</a>
+      <a href="/analytics.html">📊 Analytics (Tableau)</a>
+    </div>
+
+    <!-- PAGE CONTENT -->
+    <div class="section">
+      <div class="section-title">Scrum Analytics Dashboard</div>
+      <p>
+        Visual insights for sprint health, delivery trends, velocity, and team
+        performance powered by Tableau.
+      </p>
+
+      <div class="dashboard-wrapper">
+        <iframe
+          src="https://public.tableau.com/views/Userstoriesstatus/Sheet1?:language=en-GB&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link?:showVizHome=no"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="app-footer">
+    Built with ❤️ by Pratiksha Bhattacharyya · The Scrum Book
+  </footer>
+</body>
+</html>

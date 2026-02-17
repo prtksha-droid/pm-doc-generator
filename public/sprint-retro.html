@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Scrum Book – Sprint Retrospective (AI)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="chat-widget.css">
+<script src="chat-widget.js" defer></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    p {
+      margin: 4px 0 12px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input[type="file"],
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      background: #ffffff;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: #ffffff;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .nav a {
+      text-decoration: none;
+      color: #2563eb;
+      font-weight: 500;
+    }
+    .section-box {
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      background: #f9fafb;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+    .helper {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .status--error {
+      color: #b91c1c;
+    }
+    .status--success {
+      color: #166534;
+    }
+
+    /* Branding */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      font-size: 26px;
+    }
+    .app-name {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .app-tagline {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .app-footer {
+      margin-top: 18px;
+      font-size: 11px;
+      text-align: center;
+      color: #6b7280;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header class="app-header">
+      <div class="logo-row">
+        <span class="logo-icon">📘</span>
+        <div class="logo-text">
+          <div class="app-name">The Scrum Book</div>
+          <div class="app-tagline">AI-powered Agile documentation & delivery toolkit</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="nav">
+      <span>Navigation:</span>
+      <a href="/">Main – Document Generator</a>
+      <a href="/user-stories.html">User Stories & Epics</a>
+      <a href="/sprint-review.html">Sprint Review (AI)</a>
+      <a href="/sprint-retro.html" style="font-weight:700;">Sprint Retrospective (AI)</a>
+	  <a href="/code-review.html">Code Review (Beta)</a>
+
+    </div>
+
+    <p>
+      Run a complete <strong>Sprint Retrospective</strong> using <strong>The Scrum Book</strong>.
+      Capture sprint events using <strong>voice-to-text</strong>, enrich it with AI, and prepare a fully structured retro instantly.
+    </p>
+
+    <!-- 1. Context -->
+    <div class="section-box">
+      <div class="section-title">1. What happened this sprint? (Context)</div>
+
+      <label>Project Name</label>
+      <input type="text" id="retroProjectName" placeholder="e.g., Digital Payment Platform" />
+
+      <label style="margin-top: 8px;">Sprint Name</label>
+      <input type="text" id="retroSprintName" placeholder="e.g., Sprint 6 – API Stabilization" />
+
+      <label style="margin-top: 8px;">Sprint Context</label>
+      <textarea id="retroContext" placeholder="Record or type what happened this sprint..."></textarea>
+
+      <div style="margin-top: 8px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="button" id="voiceStartBtn">🎙️ Start voice input</button>
+        <button type="button" id="voiceStopBtn">⏹ Stop voice input</button>
+      </div>
+
+      <p id="voiceStatus" class="helper">
+        Click <strong>Start</strong>, speak your sprint context, then click <strong>Stop</strong>.
+      </p>
+
+      <label style="margin-top:10px;">Attach User Stories Excel (Optional)</label>
+      <input type="file" id="retroExcel" accept=".xlsx" />
+    </div>
+
+    <!-- 2. Retro AI -->
+    <div class="section-box">
+      <div class="section-title">2. AI Suggestions</div>
+
+      <button id="retroAnalyzeBtn">Generate Retrospective with AI</button>
+      <div id="retroStatus" class="status"></div>
+
+      <label style="margin-top: 8px;">What Went Well</label>
+      <textarea id="retroWentWell"></textarea>
+
+      <label style="margin-top: 8px;">What Didn’t Go Well</label>
+      <textarea id="retroDidNotGoWell"></textarea>
+
+      <label style="margin-top: 8px;">Improvements / Experiments</label>
+      <textarea id="retroImprovements"></textarea>
+
+      <label style="margin-top: 8px;">Action Items (Owner + Due Date)</label>
+      <textarea id="retroActions"></textarea>
+
+      <label style="margin-top: 8px;">Kudos</label>
+      <textarea id="retroKudos"></textarea>
+    </div>
+
+    <!-- 3. Summary -->
+    <div class="section-box">
+      <div class="section-title">3. Retro Summary</div>
+      <textarea id="retroSummary" placeholder="AI summary will appear here."></textarea>
+      <button id="copySummaryBtn" class="secondary">Copy Summary</button>
+      <div id="summaryStatus" class="status"></div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    Built with ❤️ by Pratiksha Bhattacharyya · The Scrum Book
+  </footer>
+
+  <!-- SCRIPT -->
+  <script>
+    // -------------------------
+    // Voice to Text (Browser API)
+    // -------------------------
+    const retroContext = document.getElementById("retroContext");
+    const startBtn = document.getElementById("voiceStartBtn");
+    const stopBtn = document.getElementById("voiceStopBtn");
+    const voiceStatus = document.getElementById("voiceStatus");
+    const retroExcel = document.getElementById("retroExcel");
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    let recognition = null;
+    let isListening = false;
+
+    if (!SpeechRecognition) {
+      startBtn.disabled = true;
+      stopBtn.disabled = true;
+      voiceStatus.textContent =
+        "Voice input is not supported in this browser. Use Chrome Desktop or Android Chrome.";
+    } else {
+      recognition = new SpeechRecognition();
+      recognition.lang = "en-IN";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        isListening = true;
+        voiceStatus.textContent = "Listening... speak now.";
+      };
+
+      recognition.onresult = (event) => {
+        let finalText = retroContext.value ? retroContext.value + " " : "";
+        let interim = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalText += event.results[i][0].transcript + " ";
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        retroContext.value = (finalText + interim).trim();
+      };
+
+      recognition.onerror = (event) => {
+        voiceStatus.textContent = "Voice error: " + event.error;
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        voiceStatus.textContent = "Stopped listening.";
+      };
+    }
+
+    startBtn.onclick = () => {
+      if (!isListening && recognition) {
+        try {
+          recognition.start();
+        } catch (e) {
+          console.error("Recognition start error:", e);
+        }
+      }
+    };
+
+    stopBtn.onclick = () => {
+      if (isListening && recognition) {
+        recognition.stop();
+      }
+    };
+
+    // -------------------------
+    // Build Retro Prompt
+    // -------------------------
+    function buildRetroPrompt() {
+      return `
+Project: ${document.getElementById("retroProjectName").value}
+Sprint: ${document.getElementById("retroSprintName").value}
+
+Context:
+${retroContext.value}
+
+Generate JSON with:
+- whatWentWell
+- whatDidNotGoWell
+- improvements
+- actionItems
+- kudos
+- summary
+`;
+    }
+
+    // -------------------------
+    // AI Retro Generation
+    // -------------------------
+    document.getElementById("retroAnalyzeBtn").onclick = async () => {
+      const retroStatus = document.getElementById("retroStatus");
+      retroStatus.textContent = "Thinking...";
+      retroStatus.className = "status";
+
+      const formData = new FormData();
+      formData.append("prompt", buildRetroPrompt());
+
+      if (retroExcel.files[0]) {
+        formData.append("retroExcel", retroExcel.files[0]);
+      }
+
+      try {
+        const res = await fetch("/sprint-retro-analyze", {
+          method: "POST",
+          body: formData,
+        });
+
+        const rawText = await res.text();
+        let data;
+
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          retroStatus.textContent =
+            "Server did not return JSON. Response was:\n" +
+            rawText.slice(0, 200) +
+            (rawText.length > 200 ? "..." : "");
+          retroStatus.classList.add("status--error");
+          return;
+        }
+
+        const r = data.retro || {};
+
+        const asBullets = (arrOrStr) => {
+          if (Array.isArray(arrOrStr)) {
+            return arrOrStr.length ? "• " + arrOrStr.join("\n• ") : "";
+          }
+          return arrOrStr || "";
+        };
+
+        document.getElementById("retroWentWell").value =
+          asBullets(r.whatWentWell);
+        document.getElementById("retroDidNotGoWell").value =
+          asBullets(r.whatDidNotGoWell);
+        document.getElementById("retroImprovements").value =
+          asBullets(r.improvements);
+        document.getElementById("retroActions").value =
+          asBullets(r.actionItems);
+        document.getElementById("retroKudos").value =
+          asBullets(r.kudos);
+
+        document.getElementById("retroSummary").value =
+          r.summary || "";
+
+        retroStatus.textContent = "Retro generated.";
+        retroStatus.classList.add("status--success");
+      } catch (err) {
+        retroStatus.textContent = "AI error: " + err.message;
+        retroStatus.classList.add("status--error");
+      }
+    };
+
+    // -------------------------
+    // Copy Summary
+    // -------------------------
+    document.getElementById("copySummaryBtn").onclick = async () => {
+      const txt = document.getElementById("retroSummary").value;
+      const status = document.getElementById("summaryStatus");
+
+      try {
+        await navigator.clipboard.writeText(txt);
+        status.textContent = "Copied!";
+        status.classList.add("status--success");
+      } catch {
+        status.textContent = "Cannot copy.";
+        status.classList.add("status--error");
+      }
+    };
+  </script>
+</body>
+</html>

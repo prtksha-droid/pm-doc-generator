@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Scrum Book – Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .chat-box { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:12px; height:420px; overflow:auto; }
+    .msg { margin:10px 0; padding:10px 12px; border-radius:12px; max-width:85%; white-space:pre-wrap; }
+    .user { background:#2563eb; color:#fff; margin-left:auto; }
+    .bot { background:#f3f4f6; color:#111827; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    select { padding:7px 9px; border-radius:8px; border:1px solid #d1d5db; font-size:13px; background:#fff; }
+    .input-row { display:flex; gap:10px; margin-top:10px; }
+    .input-row textarea { flex:1; min-height:56px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <div class="logo-row">
+        <span class="logo-icon">📘</span>
+        <div>
+          <div class="app-name">The Scrum Book</div>
+          <div class="app-tagline">Chatbot Assistant</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="nav">
+      <a href="index.html">← Back</a>
+      <span>·</span>
+      <a href="brd.html">BRD</a>
+      <span>·</span>
+      <a href="stories.html">User Stories</a>
+      <span>·</span>
+      <a href="retro.html">Retro</a>
+      <span>·</span>
+      <a href="code-review.html">Code Review</a>
+      <span>·</span>
+      <span style="font-weight:700;">Chatbot</span>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">Mode</div>
+      <div class="row">
+        <label style="margin:0;">Choose assistant:</label>
+        <select id="mode">
+          <option value="scrum">Scrum Coach (Agile doubts)</option>
+          <option value="app">The Scrum Book Help (App guidance)</option>
+        </select>
+        <button class="secondary" id="clearBtn">Clear Chat</button>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">Chat</div>
+      <div id="chat" class="chat-box"></div>
+
+      <div class="input-row">
+        <textarea id="input" placeholder="Ask anything… e.g. 'How do I write good acceptance criteria?' or 'How do I use sprint retro page?'"></textarea>
+        <button id="sendBtn">Send</button>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    Chatbot · The Scrum Book
+  </footer>
+
+  <script>
+    const chatEl = document.getElementById("chat");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const modeEl = document.getElementById("mode");
+    const statusEl = document.getElementById("status");
+
+    // Keep conversation in memory (per page load). You can persist in localStorage later.
+    let messages = [];
+
+    function addMsg(text, who) {
+      const div = document.createElement("div");
+      div.className = `msg ${who}`;
+      div.textContent = text;
+      chatEl.appendChild(div);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    async function send() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      statusEl.textContent = "";
+      addMsg(text, "user");
+      messages.push({ role: "user", content: text });
+      inputEl.value = "";
+      sendBtn.disabled = true;
+
+      try {
+        statusEl.textContent = "Thinking...";
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: modeEl.value, messages })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Server error");
+
+        const reply = data.reply || "";
+        addMsg(reply, "bot");
+        messages.push({ role: "assistant", content: reply });
+        statusEl.textContent = "";
+      } catch (e) {
+        statusEl.textContent = "Error: " + e.message;
+        statusEl.className = "status status--error";
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", send);
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      chatEl.innerHTML = "";
+      messages = [];
+      statusEl.textContent = "";
+    });
+
+    // Welcome message
+    addMsg("Hi! I’m your Scrum Book assistant. Pick a mode above and ask your question.", "bot");
+  </script>
+</body>
+</html>
