@@ -237,7 +237,7 @@ console.log("DEBUG confluenceBaseUrl:", confluenceBaseUrl);
         token: atlassianApiToken,
         fields: {
           project: { key: jiraProjectKey },
-          summary: title,
+          summary: safeTitle,
           issuetype: { name: jiraIssueType || "Task" },
           description: {
             type: "doc",
