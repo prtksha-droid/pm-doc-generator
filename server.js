@@ -210,6 +210,12 @@ const atlassianApiToken = process.env.ATLASSIAN_API_TOKEN;
       return res.status(400).json({ error: "Missing confluenceSpaceKey" });
     }
 
+console.log("DEBUG safeTitle:", safeTitle);
+console.log("DEBUG htmlContent length:", (htmlContent || "").length);
+console.log("DEBUG spaceKey:", confluenceSpaceKey);
+console.log("DEBUG confluenceBaseUrl:", confluenceBaseUrl);
+
+
     /* ===== CREATE CONFLUENCE PAGE ===== */
     const page = await confluenceCreatePage({
       confluenceBaseUrl,
