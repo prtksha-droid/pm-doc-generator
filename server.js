@@ -34,6 +34,16 @@ const uploadMemory = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
+
+// ✅ Run multer only when the request is multipart/form-data
+function maybeMulterAny(req, res, next) {
+  const ct = req.headers["content-type"] || "";
+  if (ct.includes("multipart/form-data")) {
+    return uploadMemory.any()(req, res, next);
+  }
+  return next();
+}
+
 /* =========================
    OPENAI
 ========================= */
@@ -167,20 +177,23 @@ app.get("/health", (req, res) => res.send("OK"));
 /* =========================
    FULL AUTOMATION ROUTE
 ========================= */
-app.post("/fully-automate", uploadMemory.any(), async (req, res) => {
+app.post("/fully-automate", maybeMulterAny, async (req, res) => {
+
   try {
     const {
-      jiraBaseUrl,
-      confluenceBaseUrl,
-      atlassianEmail,
-      atlassianApiToken,
-      confluenceSpaceKey,
-      confluenceParentId,
-      jiraProjectKey,
-      jiraIssueType,
-      title,
-      htmlContent,
-    } = req.body;
+  jiraProjectKey,
+  jiraIssueType,
+  title,
+  htmlContent,
+  confluenceSpaceKey,
+  confluenceParentId,
+} = req.body;
+
+const jiraBaseUrl = process.env.JIRA_BASE_URL;
+const confluenceBaseUrl = process.env.CONFLUENCE_BASE_URL;
+const atlassianEmail = process.env.ATLASSIAN_EMAIL;
+const atlassianApiToken = process.env.ATLASSIAN_API_TOKEN;
+ 
 
     if (!confluenceBaseUrl || !jiraBaseUrl) {
       return res.status(400).json({ error: "Missing Atlassian URLs" });
