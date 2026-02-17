@@ -210,9 +210,26 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
       (typeof title === "string" ? title.trim() : "") ||
       `PM Doc - ${new Date().toISOString()}`;
 
-    if (!jiraBaseUrl || !confluenceBaseUrl) {
-      return res.status(400).json({ error: "Missing Atlassian URLs" });
-    }
+    const tenantDomain = (req.body.tenantDomain || "").trim(); // e.g. "prtksha.atlassian.net"
+
+const resolvedJiraBaseUrl =
+  (req.body.jiraBaseUrl || "").trim() ||
+  (process.env.JIRA_BASE_URL || "").trim() ||
+  (tenantDomain ? `https://${tenantDomain}` : "");
+
+const resolvedConfluenceBaseUrl =
+  (req.body.confluenceBaseUrl || "").trim() ||
+  (process.env.CONFLUENCE_BASE_URL || "").trim() ||
+  (tenantDomain ? `https://${tenantDomain}/wiki` : "");
+
+// ✅ Now validate using resolved values
+if (!resolvedJiraBaseUrl || !resolvedConfluenceBaseUrl) {
+  return res.status(400).json({
+    error:
+      "Missing Atlassian URLs. Provide tenantDomain (like prtksha.atlassian.net) or set JIRA_BASE_URL + CONFLUENCE_BASE_URL in Render.",
+  });
+}
+
     if (!atlassianEmail || !atlassianApiToken) {
       return res.status(400).json({ error: "Missing Atlassian credentials" });
     }
