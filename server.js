@@ -14,6 +14,8 @@ const app = express();
    EXPRESS SETUP
 ========================= */
 app.use(cors());
+app.use(express.static("public"));
+
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 
