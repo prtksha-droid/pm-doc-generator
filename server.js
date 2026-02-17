@@ -145,6 +145,17 @@ async function jiraCreateIssue({
   return data;
 }
 
+
+app.get("/", (req, res) => {
+  res.status(200).send(
+    "PM Doc Generator is running ✅<br/><br/>" +
+    "Try: <a href='/health'>/health</a><br/>" +
+    "POST endpoint: /fully-automate"
+  );
+});
+
+
+
 /* =========================
    ROUTES
 ========================= */
