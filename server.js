@@ -189,6 +189,13 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   confluenceParentId,
 } = req.body;
 
+const safeTitle =
+  (typeof title === "string" ? title.trim() : "") || `PM Doc - ${new Date().toISOString()}`;
+
+if (!safeTitle) {
+  return res.status(400).json({ error: "Missing title" });
+}
+
 const jiraBaseUrl = process.env.JIRA_BASE_URL;
 const confluenceBaseUrl = process.env.CONFLUENCE_BASE_URL;
 const atlassianEmail = process.env.ATLASSIAN_EMAIL;
@@ -206,12 +213,12 @@ const atlassianApiToken = process.env.ATLASSIAN_API_TOKEN;
     /* ===== CREATE CONFLUENCE PAGE ===== */
     const page = await confluenceCreatePage({
       confluenceBaseUrl,
-      email: atlassianEmail,
-      token: atlassianApiToken,
-      spaceKey: confluenceSpaceKey,
-      title,
-      html: htmlContent,
-      parentId: confluenceParentId,
+  email: atlassianEmail,
+  token: atlassianApiToken,
+  spaceKey: confluenceSpaceKey,
+  title: safeTitle,
+  html: htmlContent,
+  parentId: confluenceParentId,
     });
 
     /* ===== CREATE JIRA ISSUE ===== */
