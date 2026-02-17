@@ -230,9 +230,19 @@ if (!resolvedJiraBaseUrl || !resolvedConfluenceBaseUrl) {
   });
 }
 
-    if (!atlassianEmail || !atlassianApiToken) {
-      return res.status(400).json({ error: "Missing Atlassian credentials" });
-    }
+    const resolvedAtlassianEmail =
+  (atlassianEmail || "").trim() || (process.env.ATLASSIAN_EMAIL || "").trim();
+
+const resolvedAtlassianApiToken =
+  (atlassianApiToken || "").trim() || (process.env.ATLASSIAN_API_TOKEN || "").trim();
+
+if (!resolvedAtlassianEmail || !resolvedAtlassianApiToken) {
+  return res.status(400).json({
+    error:
+      "Missing Atlassian credentials. Set ATLASSIAN_EMAIL and ATLASSIAN_API_TOKEN in Render Environment (recommended), or provide atlassianEmail + atlassianApiToken in the request.",
+  });
+}
+
     if (!confluenceSpaceKey) {
       return res.status(400).json({ error: "Missing confluenceSpaceKey" });
     }
