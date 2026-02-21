@@ -290,12 +290,29 @@
       .fa-kpis{grid-template-columns:1fr}
     }
   
-    /* ✅ NEW: connection details */
-    .fa-conn { margin-top: 12px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,0.6); }
-    .fa-conn-summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
-    .fa-note { font-size: 12px; color: rgba(0,0,0,0.75); background: rgba(0,0,0,0.04); padding: 8px 10px; border-radius: 10px; margin: 8px 0 10px; }
-    .fa-help { font-size: 12px; color: rgba(0,0,0,0.6); margin-top: 6px; }
-    .fa-row { display:flex; align-items:center; gap:8px; padding-top: 6px; }
+    /* =========================================================
+       TABS (DOC GENERATOR vs FULLY AUTOMATE)
+       Accessible pattern based on WAI-ARIA APG
+       ========================================================= */
+    .tabs-wrap{max-width:980px;margin:0 auto}
+    .tabs-bar{display:flex;gap:8px;align-items:center;margin:14px 0 12px 0;flex-wrap:wrap}
+    .tab-btn{
+      border:1px solid #e5e7eb;
+      background:#fff;
+      color:#111827;
+      padding:10px 12px;
+      border-radius:999px;
+      font-weight:800;
+      cursor:pointer;
+      font-size:13px;
+      line-height:1;
+    }
+    .tab-btn[aria-selected="true"]{
+      background:#111827;
+      color:#fff;
+      border-color:#111827;
+    }
+    .tabpanel{padding-top:6px}
 </style>
 </head>
 <body>
@@ -324,7 +341,15 @@
 
     <hr>
 
-    <!-- =========================================================
+    
+<div class="tabs-wrap" id="main-tabs">
+  <div class="tabs-bar" role="tablist" aria-label="PM Doc Generator tabs">
+    <button id="tab-automate" class="tab-btn" role="tab" aria-selected="true" aria-controls="panel-automate" type="button">⚡ Fully Automate</button>
+    <button id="tab-docgen" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-docgen" type="button">📄 Doc Generator</button>
+  </div>
+
+  <div id="panel-automate" class="tabpanel" role="tabpanel" aria-labelledby="tab-automate">
+<!-- =========================================================
          ADVANCED FULLY AUTOMATE SECTION (NEW)
          ========================================================= -->
     <section class="fa-wrap" id="fully-automate">
@@ -377,78 +402,6 @@
               <input class="fa-input" id="faConfluenceSpaceKey" placeholder="e.g., DOCS" />
             </div>
           </div>
-
-          <!-- ✅ NEW: Connection details (optional for public multi-tenant testing)
-               If left blank, the server will use Render environment variables (if configured). -->
-          <details class="fa-conn" open>
-            <summary class="fa-conn-summary">Connection (optional) – enter your Jira/Confluence + Atlassian credentials</summary>
-
-            <div class="fa-note">
-              <strong>Note:</strong> Don’t paste your OpenAI key here. This section is only for Atlassian (Jira/Confluence)
-              <em>email + API token</em>. Your data stays in your browser (saved in localStorage for convenience).
-            </div>
-
-            <div class="fa-two">
-              <div class="fa-field">
-                <label class="fa-label">Tenant Domain (recommended)</label>
-                <input class="fa-input" id="faTenantDomain" placeholder="e.g., yourcompany.atlassian.net" />
-                <div class="fa-help">If provided, Jira/Confluence base URLs are auto-derived.</div>
-              </div>
-              <div class="fa-field">
-                <label class="fa-label">Confluence Space Key</label>
-                <input class="fa-input" id="faConfluenceSpaceKey2" placeholder="e.g., DOCS or ~<accountId>" />
-                <div class="fa-help">Same as above; this is here so users don’t miss it in the basic section.</div>
-              </div>
-            </div>
-
-            <div class="fa-two">
-              <div class="fa-field">
-                <label class="fa-label">Jira Base URL (optional)</label>
-                <input class="fa-input" id="faJiraBaseUrl" placeholder="e.g., https://yourcompany.atlassian.net" />
-              </div>
-              <div class="fa-field">
-                <label class="fa-label">Confluence Base URL (optional)</label>
-                <input class="fa-input" id="faConfluenceBaseUrl" placeholder="e.g., https://yourcompany.atlassian.net/wiki" />
-              </div>
-            </div>
-
-            <div class="fa-two">
-              <div class="fa-field">
-                <label class="fa-label">Atlassian Email</label>
-                <input class="fa-input" id="faAtlassianEmail" placeholder="e.g., you@company.com" />
-              </div>
-              <div class="fa-field">
-                <label class="fa-label">Atlassian API Token</label>
-                <input class="fa-input" id="faAtlassianApiToken" type="password" placeholder="Create from id.atlassian.com → Security → API tokens" />
-              </div>
-            </div>
-
-            <div class="fa-two">
-              <div class="fa-field">
-                <label class="fa-label">Confluence Parent Page ID (optional)</label>
-                <input class="fa-input" id="faConfluenceParentId" placeholder="e.g., 196700" />
-              </div>
-              <div class="fa-field">
-                <label class="fa-label">Jira Issue Type (optional)</label>
-                <input class="fa-input" id="faJiraIssueType" placeholder="Task / Story / Bug (default: Task)" />
-              </div>
-            </div>
-
-            <div class="fa-two">
-              <div class="fa-field">
-                <label class="fa-label">Title (optional)</label>
-                <input class="fa-input" id="faTitle" placeholder="e.g., PM Doc Pack - Payments Revamp" />
-              </div>
-              <div class="fa-field">
-                <label class="fa-label">Publish to Confluence/Jira</label>
-                <div class="fa-row">
-                  <input type="checkbox" id="faPublish2" />
-                  <label for="faPublish2">Publish</label>
-                </div>
-                <div class="fa-help">If unchecked, the server returns a preview JSON only (no publishing).</div>
-              </div>
-            </div>
-          </details>
 
           <div class="fa-two">
             <div class="fa-field">
@@ -562,8 +515,10 @@
         </div>
       </div>
     </section>
+  </div>
 
-    <hr>
+  <div id="panel-docgen" class="tabpanel" role="tabpanel" aria-labelledby="tab-docgen" hidden>
+<hr>
 
     <p>
       Upload your <strong>DOCX template</strong> with placeholders like
@@ -833,10 +788,45 @@
       </div>
     </form>
   </div>
+</div>
+
+  </div>
 
   <footer class="app-footer">Built with ❤️ by Pratiksha Bhattacharyya · The Scrum Book</footer>
 
   <script>
+    // =========================================================
+    // Tabs: Fully Automate vs Doc Generator
+    // =========================================================
+    (function initTabs(){
+      const tabAutomate = document.getElementById("tab-automate");
+      const tabDocgen = document.getElementById("tab-docgen");
+      const panelAutomate = document.getElementById("panel-automate");
+      const panelDocgen = document.getElementById("panel-docgen");
+      if (!tabAutomate || !tabDocgen || !panelAutomate || !panelDocgen) return;
+
+      function setActive(which){
+        const isAutomate = which === "automate";
+        tabAutomate.setAttribute("aria-selected", String(isAutomate));
+        tabDocgen.setAttribute("aria-selected", String(!isAutomate));
+        panelAutomate.hidden = !isAutomate;
+        panelDocgen.hidden = isAutomate;
+        try { localStorage.setItem("tsb_active_tab", which); } catch(e) {}
+      }
+
+      tabAutomate.addEventListener("click", () => setActive("automate"));
+      tabDocgen.addEventListener("click", () => setActive("docgen"));
+
+      // Restore last tab
+      try {
+        const saved = localStorage.getItem("tsb_active_tab");
+        if (saved === "docgen" || saved === "automate") setActive(saved);
+      } catch(e) {}
+
+      // If user navigates to #fully-automate, open that tab
+      if (location.hash && location.hash.includes("fully-automate")) setActive("automate");
+    })();
+
     // Prefill date with today
     document.addEventListener("DOMContentLoaded", () => {
       const dateInput = document.getElementById("date");
@@ -1121,53 +1111,6 @@ Return ONLY JSON with this structure (omit fields that are not applicable):
     // ---------- helpers ----------
     const $fa = (id) => document.getElementById(id);
 
-    // ✅ NEW: Persist connection details locally (browser only)
-    const FA_STORE_KEY = "pm_doc_generator_conn_v1";
-    function faLoadConn() {
-      try {
-        const raw = localStorage.getItem(FA_STORE_KEY);
-        if (!raw) return;
-        const v = JSON.parse(raw) || {};
-        const map = {
-          faTenantDomain: "tenantDomain",
-          faJiraBaseUrl: "jiraBaseUrl",
-          faConfluenceBaseUrl: "confluenceBaseUrl",
-          faAtlassianEmail: "atlassianEmail",
-          faAtlassianApiToken: "atlassianApiToken",
-          faConfluenceParentId: "confluenceParentId",
-          faJiraIssueType: "jiraIssueType",
-          faTitle: "title",
-          faConfluenceSpaceKey2: "confluenceSpaceKey",
-          faPublish2: "publish",
-        };
-        Object.keys(map).forEach((id) => {
-          const el = $fa(id);
-          if (!el) return;
-          const key = map[id];
-          if (el.type === "checkbox") el.checked = !!v[key];
-          else el.value = v[key] ?? el.value ?? "";
-        });
-      } catch {}
-    }
-
-    function faSaveConn() {
-      try {
-        const v = {
-          tenantDomain: ($fa("faTenantDomain")?.value || "").trim(),
-          jiraBaseUrl: ($fa("faJiraBaseUrl")?.value || "").trim(),
-          confluenceBaseUrl: ($fa("faConfluenceBaseUrl")?.value || "").trim(),
-          atlassianEmail: ($fa("faAtlassianEmail")?.value || "").trim(),
-          atlassianApiToken: ($fa("faAtlassianApiToken")?.value || "").trim(),
-          confluenceParentId: ($fa("faConfluenceParentId")?.value || "").trim(),
-          jiraIssueType: ($fa("faJiraIssueType")?.value || "").trim(),
-          title: ($fa("faTitle")?.value || "").trim(),
-          confluenceSpaceKey: ($fa("faConfluenceSpaceKey2")?.value || "").trim(),
-          publish: !!$fa("faPublish2")?.checked,
-        };
-        localStorage.setItem(FA_STORE_KEY, JSON.stringify(v));
-      } catch {}
-    }
-
     function faLog(msg) {
       const el = $fa("faLog");
       if (!el) return;
@@ -1388,39 +1331,13 @@ Return ONLY JSON with this structure (omit fields that are not applicable):
         fd.append("requirementsText", text);
         if (file) fd.append("requirementsFile", file);
 
-        // ---- Required/primary fields ----
         fd.append("projectName", $fa("faProjectName")?.value || "");
         fd.append("jiraProjectKey", $fa("faJiraProjectKey")?.value || "");
-
-        // Space key: prefer the main one; fallback to the connection section duplicate
-        const spaceKeyPrimary = $fa("faConfluenceSpaceKey")?.value || "";
-        const spaceKeyAlt = $fa("faConfluenceSpaceKey2")?.value || "";
-        fd.append("confluenceSpaceKey", (spaceKeyPrimary || spaceKeyAlt || ""));
-
+        fd.append("confluenceSpaceKey", $fa("faConfluenceSpaceKey")?.value || "");
         fd.append("labels", $fa("faLabels")?.value || "");
 
-        // ---- ✅ NEW: Optional connection fields (for public multi-tenant) ----
-        const tenantDomain = ($fa("faTenantDomain")?.value || "").trim();
-        const jiraBaseUrl = ($fa("faJiraBaseUrl")?.value || "").trim();
-        const confluenceBaseUrl = ($fa("faConfluenceBaseUrl")?.value || "").trim();
-        const atlassianEmail = ($fa("faAtlassianEmail")?.value || "").trim();
-        const atlassianApiToken = ($fa("faAtlassianApiToken")?.value || "").trim();
-        const confluenceParentId = ($fa("faConfluenceParentId")?.value || "").trim();
-        const jiraIssueType = ($fa("faJiraIssueType")?.value || "").trim();
-        const title = ($fa("faTitle")?.value || "").trim();
-
-        if (tenantDomain) fd.append("tenantDomain", tenantDomain);
-        if (jiraBaseUrl) fd.append("jiraBaseUrl", jiraBaseUrl);
-        if (confluenceBaseUrl) fd.append("confluenceBaseUrl", confluenceBaseUrl);
-        if (atlassianEmail) fd.append("atlassianEmail", atlassianEmail);
-        if (atlassianApiToken) fd.append("atlassianApiToken", atlassianApiToken);
-        if (confluenceParentId) fd.append("confluenceParentId", confluenceParentId);
-        if (jiraIssueType) fd.append("jiraIssueType", jiraIssueType);
-        if (title) fd.append("title", title);
-
-        // Publish: support either checkbox (old or new)
-        const publishChecked = $fa("faPublish")?.checked || $fa("faPublish2")?.checked;
-        fd.append("publish", publishChecked ? "true" : "false");
+        // ✅ NEW: actually send publish flag
+        fd.append("publish", $fa("faPublish")?.checked ? "true" : "false");
 
         faLog("Calling /fully-automate…");
         const res = await fetch("/fully-automate", { method: "POST", body: fd });
@@ -1464,51 +1381,6 @@ Return ONLY JSON with this structure (omit fields that are not applicable):
 
       const runBtn = $fa("faBtnRun");
       if (runBtn) runBtn.addEventListener("click", runFullyAutomate);
-
-      // ✅ NEW: load/save connection fields (browser only)
-      faLoadConn();
-      [
-        "faTenantDomain",
-        "faJiraBaseUrl",
-        "faConfluenceBaseUrl",
-        "faAtlassianEmail",
-        "faAtlassianApiToken",
-        "faConfluenceParentId",
-        "faJiraIssueType",
-        "faTitle",
-        "faConfluenceSpaceKey2",
-        "faPublish2",
-      ].forEach((id) => {
-        const el = $fa(id);
-        if (!el) return;
-        el.addEventListener("input", faSaveConn);
-        el.addEventListener("change", faSaveConn);
-      });
-
-      // Keep the old publish checkbox and the new one in sync
-      const pubA = $fa("faPublish");
-      const pubB = $fa("faPublish2");
-      const syncPublish = () => {
-        if (pubA && pubB) pubB.checked = !!pubA.checked;
-      };
-      if (pubA && pubB) {
-        pubA.addEventListener("change", syncPublish);
-        // If user toggles in the connection section, update the main toggle too
-        pubB.addEventListener("change", () => {
-          pubA.checked = !!pubB.checked;
-          faSaveConn();
-        });
-        syncPublish();
-      }
-
-      // Keep duplicate Confluence Space Key in sync
-      const sk1 = $fa("faConfluenceSpaceKey");
-      const sk2 = $fa("faConfluenceSpaceKey2");
-      if (sk1 && sk2) {
-        sk2.value = sk1.value || sk2.value || "";
-        sk1.addEventListener("input", () => (sk2.value = sk1.value));
-        sk2.addEventListener("input", () => (sk1.value = sk2.value));
-      }
 
       // ✅ NEW: update button label when publish toggles
       const pub = $fa("faPublish");
