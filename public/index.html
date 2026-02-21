@@ -313,6 +313,8 @@
       border-color:#111827;
     }
     .tabpanel{padding-top:6px}
+	
+	#docgen-section-1 { display: none !important; }
 </style>
 </head>
 <body>
@@ -530,7 +532,8 @@
 
     <form id="docForm">
       <!-- 1. Template upload -->
-      <div class="section">
+      <div class="section" id="docgen-section-1">
+	  <!-- ===== DOC GENERATOR SECTION 1 REMOVED (UI ONLY) =====
         <div class="section-title">1. DOCX Template</div>
 
         <label for="templateDocx">Upload Template (.docx)</label>
@@ -575,9 +578,9 @@
         </div>
       </div>
 
-      <!-- 2. Project info + document type -->
+      <!-- 2. Project info + document type --> -->
       <div class="section">
-        <div class="section-title">2. Project Info &amp; Document Type</div>
+        <div class="section-title"> Project Info &amp; Document Type</div>
         <div class="grid-3">
           <div>
             <label for="projectName">Project Name ({projectName})</label>
