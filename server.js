@@ -210,6 +210,7 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   jiraProjectKey,
   title,
   requirementsText,
+  htmlContent,
   createUserStories,
   maxStories,
   jiraStoryIssueType,
