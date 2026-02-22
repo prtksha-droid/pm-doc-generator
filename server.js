@@ -199,6 +199,57 @@ ${requirementsText}
 ========================= */
 app.get("/health", (req, res) => res.send("OK"));
 
+async function generateUserStories({ requirementsText, maxStories = 12 }) {
+  if (!openai) {
+    throw new Error("OPENAI_API_KEY missing — cannot generate user stories");
+  }
+
+  const prompt = `
+You are a Senior Agile Product Owner.
+
+From the requirements below, generate Jira user stories.
+
+Return STRICT JSON ONLY in this format:
+
+{
+  "stories": [
+    {
+      "summary": "string",
+      "description": "string",
+      "acceptanceCriteria": ["string"],
+      "labels": ["string"]
+    }
+  ]
+}
+
+Requirements:
+${requirementsText}
+`;
+
+  const resp = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const raw = resp.choices?.[0]?.message?.content || "{}";
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    console.error("❌ Failed to parse user stories:", raw);
+    return [];
+  }
+
+  const stories = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(parsed.stories)
+    ? parsed.stories
+    : [];
+
+  return stories.slice(0, maxStories);
+}
+
 app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   try {
     const {
