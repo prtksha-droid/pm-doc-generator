@@ -358,29 +358,37 @@ if (!reqText && !htmlContent) {
 if (jiraProjectKey && (String(createUserStories || "true").toLowerCase() !== "false")) {
   // Generate user stories from the same requirements used for the documents
   const stories = await generateUserStories({
-    requirementsText: reqText || "",
-    maxStories: Number(maxStories || 12),
+    for (const st of stories) {
+
+  const descParts = [];
+  if (st.description) descParts.push(st.description);
+
+  if (st.acceptanceCriteria?.length) {
+    descParts.push("\nAcceptance Criteria:");
+    st.acceptanceCriteria.forEach((ac, i) =>
+      descParts.push(`${i + 1}. ${ac}`)
+    );
+  }
+
+  const issue = await jiraCreateIssue({
+    jiraBaseUrl,
+    email: atlassianEmail,
+    token: atlassianApiToken,
+    fields: {
+      project: { key: jiraProjectKey },
+
+      summary: st.summary || "Generated Story",
+
+      issuetype: { name: jiraStoryIssueType || "Story" },
+
+      description: textToAdf(descParts.join("\n")),
+
+      labels: st.labels || ["pm-doc-generator"],
+    },
   });
 
-  for (const st of stories) {
-    const descParts = [];
-    if (st.description) descParts.push(st.description);
-    if (st.acceptanceCriteria?.length) {
-      descParts.push("\nAcceptance Criteria:");
-      st.acceptanceCriteria.forEach((ac, i) => descParts.push(`${i + 1}. ${ac}`));
-    }
-
-    const issue = await jiraCreateIssue({
-      jiraBaseUrl: resolvedJiraBaseUrl,
-      email: atlassianEmail,
-token: atlassianApiToken,
-      fields: {
-        project: { key: jiraProjectKey },
-        summary: st.summary,
-        issuetype: { name: jiraStoryIssueType || "Story" },
-        description: textToAdf(descParts.join("\n").trim()),
-        labels: st.labels?.slice(0, 10) || [],
-      },
+  createdStories.push(issue);
+}
     });
     createdStories.push(issue);
   }
