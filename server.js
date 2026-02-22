@@ -1,35 +1,37 @@
-
-/*
-PM DOC GENERATOR — OPTION B (Download + Attach Documents)
-NO existing functionality removed.
-Adds:
-- BRD / FRS / SOW / RAID DOCX generation
-- ZIP download
-- Confluence attachment upload
-*/
-
 require("dotenv").config();
+
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 const fs = require("fs");
-const path = require("path");
 const OpenAI = require("openai");
-const { Document, Packer, Paragraph, HeadingLevel, TextRun } = require("docx");
-const archiver = require("archiver");
 
 const app = express();
+
+/* =========================
+   EXPRESS SETUP
+========================= */
 app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+// Serve UI if you have /public/index.html
 app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 
+/* =========================
+   UPLOADS (Render-safe)
+========================= */
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
-const uploadMemory = multer({ storage: multer.memoryStorage() });
+const upload = multer({ dest: "uploads/" });
+const uploadMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+});
 
+// ✅ Run multer only when request is multipart/form-data (fixes “Failed to fetch” for JSON)
 function maybeMulterAny(req, res, next) {
   const ct = req.headers["content-type"] || "";
   if (ct.includes("multipart/form-data")) {
@@ -38,15 +40,24 @@ function maybeMulterAny(req, res, next) {
   return next();
 }
 
+/* =========================
+   OPENAI
+========================= */
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
+if (!openai) console.warn("⚠️ OPENAI_API_KEY missing in environment");
+
+/* =========================
+   HELPERS
+========================= */
 function stripSlash(u) {
   return String(u || "").replace(/\/+$/, "");
 }
 
 function buildHeaders(email, token) {
+  if (!email || !token) throw new Error("Missing Atlassian credentials");
   const basic = Buffer.from(`${email}:${token}`).toString("base64");
   return {
     Authorization: `Basic ${basic}`,
@@ -57,9 +68,17 @@ function buildHeaders(email, token) {
 
 async function readJsonSafe(res) {
   const text = await res.text();
-  try { return JSON.parse(text); } catch { return {}; }
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    // Atlassian sometimes returns HTML (login/error page); show first part for debugging
+    throw new Error(`Non-JSON response (${res.status}): ${text.slice(0, 200)}`);
+  }
 }
 
+/* =========================
+   CONFLUENCE (generic)
+========================= */
 async function confluenceCreatePage({
   confluenceBaseUrl,
   email,
@@ -69,196 +88,259 @@ async function confluenceCreatePage({
   html,
   parentId,
 }) {
+  const base = stripSlash(confluenceBaseUrl);
   const headers = buildHeaders(email, token);
 
   const payload = {
     type: "page",
     title,
     space: { key: spaceKey },
-    body: { storage: { value: html, representation: "storage" } },
+    body: {
+      storage: {
+        value: html,
+        representation: "storage",
+      },
+    },
   };
 
   if (parentId) payload.ancestors = [{ id: String(parentId) }];
 
-  const res = await fetch(
-    `${stripSlash(confluenceBaseUrl)}/rest/api/content`,
-    { method: "POST", headers, body: JSON.stringify(payload) }
-  );
+  const res = await fetch(`${base}/rest/api/content`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
 
-  const rawText = await res.text();
+  const data = await readJsonSafe(res);
+  if (!res.ok) {
+    throw new Error(`Confluence create page failed: ${JSON.stringify(data)}`);
+  }
 
-if (!res.ok) {
-  console.error("❌ Confluence RAW RESPONSE:", rawText);
-  throw new Error(`Confluence error ${res.status}: ${rawText}`);
+  return data;
 }
 
-let data = {};
-try {
-  data = rawText ? JSON.parse(rawText) : {};
-} catch {
-  console.warn("⚠️ Confluence response not JSON");
-}
-
-return data;
-}
-
-async function attachFile({
-  confluenceBaseUrl,
-  email,
-  token,
-  pageId,
-  filePath,
-}) {
-  const FormData = require("form-data");
-  const fetch = global.fetch;
-  const form = new FormData();
-  form.append("file", fs.createReadStream(filePath));
-
-  const basic = Buffer.from(`${email}:${token}`).toString("base64");
-
-  await fetch(
-    `${stripSlash(confluenceBaseUrl)}/rest/api/content/${pageId}/child/attachment`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${basic}`,
-        "X-Atlassian-Token": "no-check",
-      },
-      body: form,
-    }
-  );
-}
-
+/* =========================
+   JIRA (generic)
+========================= */
 async function jiraCreateIssue({ jiraBaseUrl, email, token, fields }) {
+  const base = stripSlash(jiraBaseUrl);
   const headers = buildHeaders(email, token);
-  const res = await fetch(`${stripSlash(jiraBaseUrl)}/rest/api/3/issue`, {
+
+  const res = await fetch(`${base}/rest/api/3/issue`, {
     method: "POST",
     headers,
     body: JSON.stringify({ fields }),
   });
-  return await readJsonSafe(res);
+
+  const data = await readJsonSafe(res);
+  if (!res.ok) {
+    throw new Error(`Jira create issue failed: ${JSON.stringify(data)}`);
+  }
+
+  return data;
 }
 
-async function generateDocHtml(type, requirementsText, title) {
+/* =========================
+   BRD GENERATOR (NEW)
+========================= */
+async function generateBrdHtml({ requirementsText, title }) {
+  if (!openai) {
+    throw new Error("OPENAI_API_KEY missing in Render Environment");
+  }
+
+  const prompt = `
+You are a Senior Project Manager. Create a detailed BRD in clean HTML.
+Use clear headings and bullet lists.
+
+Include sections:
+1. Executive Summary
+2. Objective
+3. Scope (In Scope / Out of Scope)
+4. Stakeholders & Roles
+5. Assumptions & Dependencies
+6. High-level Requirements (numbered)
+7. Acceptance Criteria
+8. Risks & Mitigations (table-like bullets)
+9. Non-Functional Requirements
+10. Milestones / Timeline (high level)
+11. Open Questions
+
+BRD Title: ${title}
+
+Requirements:
+${requirementsText}
+`;
+
   const resp = await openai.chat.completions.create({
     model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "user",
-        content: `Create a ${type} document in professional format.\nTitle:${title}\nRequirements:${requirementsText}`,
-      },
-    ],
-  });
-  return resp.choices?.[0]?.message?.content || "";
-}
-
-async function htmlToDocx(fileName, content) {
-  const doc = new Document({
-    sections: [{
-      children: [
-        new Paragraph({
-          text: fileName,
-          heading: HeadingLevel.HEADING_1,
-        }),
-        new Paragraph(new TextRun(content)),
-      ],
-    }],
+    messages: [{ role: "user", content: prompt }],
   });
 
-  const buffer = await Packer.toBuffer(doc);
-  const filePath = path.join("uploads", fileName + ".docx");
-  fs.writeFileSync(filePath, buffer);
-  return filePath;
+  return resp.choices?.[0]?.message?.content?.trim() || "";
 }
 
-async function createZip(files, title) {
-  const zipPath = path.join("uploads", `${title}-docs.zip`);
-  const output = fs.createWriteStream(zipPath);
-  const archive = archiver("zip");
-  archive.pipe(output);
-  files.forEach(f => archive.file(f, { name: path.basename(f) }));
-  await archive.finalize();
-  return zipPath;
-}
+/* =========================
+   ROUTES
+========================= */
+app.get("/health", (req, res) => res.send("OK"));
 
 app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   try {
     const {
+      // Multi-tenant inputs (public testing)
       jiraBaseUrl,
       confluenceBaseUrl,
       atlassianEmail,
       atlassianApiToken,
+
+      // Confluence/Jira settings
       confluenceSpaceKey,
+      confluenceParentId,
       jiraProjectKey,
+      jiraIssueType,
+
+      // Content inputs
       title,
+      htmlContent,
       requirementsText,
-    } = req.body;
+    } = req.body || {};
 
+    // ✅ title fallback so Jira/Confluence never fail
     const safeTitle =
-  (title || "PM Docs") +
-  " - " +
-  new Date().toISOString().replace(/[:.]/g, "-");
+      (typeof title === "string" ? title.trim() : "") ||
+      `PM Doc - ${new Date().toISOString()}`;
 
-    const resolvedJiraBaseUrl = jiraBaseUrl || process.env.JIRA_BASE_URL;
-    const resolvedConfluenceBaseUrl =
-      confluenceBaseUrl || process.env.CONFLUENCE_BASE_URL;
-    const resolvedEmail = atlassianEmail || process.env.ATLASSIAN_EMAIL;
-    const resolvedToken =
-      atlassianApiToken || process.env.ATLASSIAN_API_TOKEN;
+    const tenantDomain = (req.body.tenantDomain || "").trim(); // e.g. "prtksha.atlassian.net"
 
-    const parentPage = await confluenceCreatePage({
-      confluenceBaseUrl: resolvedConfluenceBaseUrl,
-      email: resolvedEmail,
-      token: resolvedToken,
-      spaceKey: confluenceSpaceKey,
-      title: safeTitle,
-      html: "<p>Generated Project Pack</p>",
-    });
+const resolvedJiraBaseUrl =
+  (req.body.jiraBaseUrl || "").trim() ||
+  (process.env.JIRA_BASE_URL || "").trim() ||
+  (tenantDomain ? `https://${tenantDomain}` : "");
 
-    const types = ["BRD", "FRS", "SOW", "RAID"];
-    const files = [];
+const resolvedConfluenceBaseUrl =
+  (req.body.confluenceBaseUrl || "").trim() ||
+  (process.env.CONFLUENCE_BASE_URL || "").trim() ||
+  (tenantDomain ? `https://${tenantDomain}/wiki` : "");
 
-    for (const t of types) {
-      const html = await generateDocHtml(t, requirementsText, safeTitle);
-      const file = await htmlToDocx(`${t}-${safeTitle}`, html);
-      files.push(file);
+// ✅ Now validate using resolved values
+if (!resolvedJiraBaseUrl || !resolvedConfluenceBaseUrl) {
+  return res.status(400).json({
+    error:
+      "Missing Atlassian URLs. Provide tenantDomain (like prtksha.atlassian.net) or set JIRA_BASE_URL + CONFLUENCE_BASE_URL in Render.",
+  });
+}
 
-      await attachFile({
-        confluenceBaseUrl: resolvedConfluenceBaseUrl,
-        email: resolvedEmail,
-        token: resolvedToken,
-        pageId: parentPage.id,
-        filePath: file,
-      });
+    if (!atlassianEmail || !atlassianApiToken) {
+      return res.status(400).json({ error: "Missing Atlassian credentials" });
+    }
+    if (!confluenceSpaceKey) {
+      return res.status(400).json({ error: "Missing confluenceSpaceKey" });
     }
 
-    const zipPath = await createZip(files, safeTitle);
+    // ✅ NEW: If htmlContent is empty, generate BRD HTML from requirementsText
+    let finalHtml = (htmlContent || "").toString().trim();
 
-    let jiraIssue = null;
+    if (!finalHtml) {
+      const reqText = (requirementsText || "").toString().trim();
+      if (!reqText) {
+        return res.status(400).json({
+          error:
+            "Empty content: provide htmlContent OR requirementsText to generate BRD",
+        });
+      }
+      finalHtml = await generateBrdHtml({ requirementsText: reqText, title: safeTitle });
+
+      if (!finalHtml) {
+        return res.status(500).json({ error: "BRD generation returned empty output" });
+      }
+    }
+
+    // Create Confluence page
+    const page = await confluenceCreatePage({
+      confluenceBaseUrl,
+      email: atlassianEmail,
+      token: atlassianApiToken,
+      spaceKey: confluenceSpaceKey,
+      title: safeTitle,
+      html: finalHtml,
+      parentId: confluenceParentId,
+    });
+
+    // Create Jira issue (optional)
+    let createdStories = [];
+if (jiraProjectKey && (String(createUserStories || "true").toLowerCase() !== "false")) {
+  // Generate user stories from the same requirements used for the documents
+  const stories = await generateUserStories({
+    requirementsText: requirementsText || "",
+    maxStories: Number(maxStories || 12),
+  });
+
+  for (const st of stories) {
+    const descParts = [];
+    if (st.description) descParts.push(st.description);
+    if (st.acceptanceCriteria?.length) {
+      descParts.push("\nAcceptance Criteria:");
+      st.acceptanceCriteria.forEach((ac, i) => descParts.push(`${i + 1}. ${ac}`));
+    }
+
+    const issue = await jiraCreateIssue({
+      jiraBaseUrl: resolvedJiraBaseUrl,
+      email: resolvedEmail,
+      token: resolvedToken,
+      fields: {
+        project: { key: jiraProjectKey },
+        summary: st.summary,
+        issuetype: { name: jiraStoryIssueType || "Story" },
+        description: textToAdf(descParts.join("\n").trim()),
+        labels: st.labels?.slice(0, 10) || [],
+      },
+    });
+    createdStories.push(issue);
+  }
+}
+
+let jiraIssue = null;
     if (jiraProjectKey) {
       jiraIssue = await jiraCreateIssue({
-        jiraBaseUrl: resolvedJiraBaseUrl,
-        email: resolvedEmail,
-        token: resolvedToken,
+        jiraBaseUrl,
+        email: atlassianEmail,
+        token: atlassianApiToken,
         fields: {
           project: { key: jiraProjectKey },
-          summary: safeTitle,
-          issuetype: { name: "Task" },
+          summary: safeTitle, // ✅ FIX: never blank
+          issuetype: { name: jiraIssueType || "Task" },
+          description: {
+            type: "doc",
+            version: 1,
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  { type: "text", text: "Created via PM Doc Generator" },
+                ],
+              },
+            ],
+          },
         },
       });
     }
 
     res.json({
-      confluencePageId: parentPage.id,
-      downloadZip: `/` + zipPath,
+      confluencePageId: page.id,
+      confluenceUrl: page._links?.webui,
       jiraIssue,
+      usedTitle: safeTitle,
+      generated: !((htmlContent || "").toString().trim()),
     });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    console.error("❌ /fully-automate error:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(PORT, () =>
-  console.log("PM Doc Generator running with DOCUMENT MODE B")
-);
+/* =========================
+   START
+========================= */
+app.listen(PORT, () => {
+  console.log(`✅ PM Doc Generator running on ${PORT}`);
+});
