@@ -52,6 +52,21 @@ if (!openai) console.warn("⚠️ OPENAI_API_KEY missing in environment");
 /* =========================
    HELPERS
 ========================= */
+function extractRequirements(req) {
+  // 1. Prefer textarea
+  let text = (req.body?.requirementsText || "").toString().trim();
+
+  // 2. Fallback to uploaded file (txt / doc text)
+  if (!text && req.files && req.files.length > 0) {
+    const f = req.files[0];
+    if (f.buffer) {
+      text = f.buffer.toString("utf8").trim();
+    }
+  }
+
+  return text;
+}
+
 function stripSlash(u) {
   return String(u || "").replace(/\/+$/, "");
 }
@@ -241,13 +256,14 @@ if (!resolvedJiraBaseUrl || !resolvedConfluenceBaseUrl) {
     let finalHtml = (htmlContent || "").toString().trim();
 
     if (!finalHtml) {
-      const reqText = (requirementsText || "").toString().trim();
-      if (!reqText) {
-        return res.status(400).json({
-          error:
-            "Empty content: provide htmlContent OR requirementsText to generate BRD",
-        });
-      }
+      const reqText = extractRequirements(req);
+
+if (!reqText && !htmlContent) {
+  return res.status(400).json({
+    error:
+      "Empty content: provide htmlContent OR requirementsText OR upload a file",
+  });
+}
       finalHtml = await generateBrdHtml({ requirementsText: reqText, title: safeTitle });
 
       if (!finalHtml) {
