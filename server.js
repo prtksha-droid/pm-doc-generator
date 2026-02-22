@@ -100,7 +100,7 @@ async function readJsonSafe(res) {
    CONFLUENCE (generic)
 ========================= */
 async function confluenceCreatePage({
-  confluenceBaseUrl: resolvedConfluenceBaseUrl,
+  confluenceBaseUrl,
   email,
   token,
   spaceKey,
@@ -142,7 +142,7 @@ async function confluenceCreatePage({
 /* =========================
    JIRA (generic)
 ========================= */
-async function jiraCreateIssue({ jiraBaseUrl: resolvedJiraBaseUrl, email, token, fields }) {
+async function jiraCreateIssue({ jiraBaseUrl, email, token, fields }) {
   const base = stripSlash(jiraBaseUrl);
   const headers = buildHeaders(email, token);
 
@@ -208,8 +208,8 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   try {
     const {
       // Multi-tenant inputs (public testing)
-      jiraBaseUrl: resolvedJiraBaseUrl,
-      confluenceBaseUrl: resolvedConfluenceBaseUrl,
+      jiraBaseUrl,
+      confluenceBaseUrl,
       atlassianEmail,
       atlassianApiToken,
 
