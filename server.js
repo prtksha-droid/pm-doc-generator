@@ -238,11 +238,16 @@ You are a Senior Product Manager.
 
 Create Jira user stories.
 
-VERY IMPORTANT:
-- summary MUST be the FUNCTIONALITY NAME
-- do NOT use generic titles
-
-Return STRICT JSON.
+Return STRICT JSON in this exact format:
+{
+  "stories": [
+    {
+      "summary": "Functionality name",
+      "description": "Detailed description",
+      "acceptanceCriteria": ["AC1", "AC2"]
+    }
+  ]
+}
 
 Requirements:
 ${requirementsText}
@@ -253,68 +258,72 @@ ${requirementsText}
     messages: [{ role: "user", content: prompt }],
   });
 
-  const raw = resp.choices?.[0]?.message?.content || "{}";
+  const raw = resp.choices?.[0]?.message?.content || "";
 
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (e) {
-    console.error("❌ Failed to parse user stories:", raw);
+  // 🔥 Extract JSON safely even if GPT adds text
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error("❌ No JSON found in user stories response:", raw);
     return [];
   }
 
-  const stories = Array.isArray(parsed)
-    ? parsed
-    : Array.isArray(parsed.stories)
-    ? parsed.stories
-    : [];
-
-  return stories.slice(0, maxStories);
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    return Array.isArray(parsed.stories)
+      ? parsed.stories.slice(0, maxStories)
+      : [];
+  } catch (e) {
+    console.error("❌ JSON parse failed:", jsonMatch[0]);
+    return [];
+  }
 }
 
 app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   try {
     const {
-  jiraBaseUrl,
-  confluenceBaseUrl,
-  atlassianEmail,
-  atlassianApiToken,
-  confluenceSpaceKey,
-  confluenceParentId,
-  jiraProjectKey,
-  jiraIssueType,   // ⭐ ADD THIS
-  title,
-  requirementsText,
-  htmlContent,
-  createUserStories,
-  maxStories,
-  jiraStoryIssueType,
-} = req.body;
-const reqText = extractRequirements(req);
+      jiraBaseUrl,
+      confluenceBaseUrl,
+      atlassianEmail,
+      atlassianApiToken,
+      confluenceSpaceKey,
+      confluenceParentId,
+      jiraProjectKey,
+      jiraIssueType,
+      jiraStoryIssueType,
+      title,
+      requirementsText, // kept for UI compatibility
+      htmlContent,
+      createUserStories,
+      maxStories,
+      tenantDomain,
+    } = req.body;
+
+    const reqText = extractRequirements(req);
+
     // ✅ title fallback so Jira/Confluence never fail
     const safeTitle =
       (typeof title === "string" ? title.trim() : "") ||
       `PM Doc - ${new Date().toISOString()}`;
 
-    const tenantDomain = (req.body.tenantDomain || "").trim(); // e.g. "prtksha.atlassian.net"
+    const tenant = (tenantDomain || "").trim(); // e.g. "prtksha.atlassian.net"
 
-const resolvedJiraBaseUrl =
-  (req.body.jiraBaseUrl || "").trim() ||
-  (process.env.JIRA_BASE_URL || "").trim() ||
-  (tenantDomain ? `https://${tenantDomain}` : "");
+    const resolvedJiraBaseUrl =
+      (String(jiraBaseUrl || "").trim()) ||
+      (String(process.env.JIRA_BASE_URL || "").trim()) ||
+      (tenant ? `https://${tenant}` : "");
 
-const resolvedConfluenceBaseUrl =
-  (req.body.confluenceBaseUrl || "").trim() ||
-  (process.env.CONFLUENCE_BASE_URL || "").trim() ||
-  (tenantDomain ? `https://${tenantDomain}/wiki` : "");
+    const resolvedConfluenceBaseUrl =
+      (String(confluenceBaseUrl || "").trim()) ||
+      (String(process.env.CONFLUENCE_BASE_URL || "").trim()) ||
+      (tenant ? `https://${tenant}/wiki` : "");
 
-// ✅ Now validate using resolved values
-if (!resolvedJiraBaseUrl || !resolvedConfluenceBaseUrl) {
-  return res.status(400).json({
-    error:
-      "Missing Atlassian URLs. Provide tenantDomain (like prtksha.atlassian.net) or set JIRA_BASE_URL + CONFLUENCE_BASE_URL in Render.",
-  });
-}
+    // ✅ Validate using resolved values
+    if (!resolvedJiraBaseUrl || !resolvedConfluenceBaseUrl) {
+      return res.status(400).json({
+        error:
+          "Missing Atlassian URLs. Provide tenantDomain (like prtksha.atlassian.net) or set JIRA_BASE_URL + CONFLUENCE_BASE_URL in Render.",
+      });
+    }
 
     if (!atlassianEmail || !atlassianApiToken) {
       return res.status(400).json({ error: "Missing Atlassian credentials" });
@@ -323,23 +332,26 @@ if (!resolvedJiraBaseUrl || !resolvedConfluenceBaseUrl) {
       return res.status(400).json({ error: "Missing confluenceSpaceKey" });
     }
 
-    // ✅ NEW: If htmlContent is empty, generate BRD HTML from requirementsText
+    // ✅ Ensure we have content to generate documents if htmlContent is not provided
     let finalHtml = (htmlContent || "").toString().trim();
     if (!finalHtml) {
-if (!reqText && !htmlContent) {
-  return res.status(400).json({
-    error:
-      "Empty content: provide htmlContent OR requirementsText OR upload a file",
-  });
-}
+      if (!reqText) {
+        return res.status(400).json({
+          error:
+            "Empty content: provide htmlContent OR requirementsText OR upload a file",
+        });
+      }
+
       finalHtml = await generateBrdHtml({ reqText, title: safeTitle });
 
       if (!finalHtml) {
-        return res.status(500).json({ error: "BRD generation returned empty output" });
+        return res
+          .status(500)
+          .json({ error: "BRD generation returned empty output" });
       }
     }
 
-    // Create Confluence page
+    // 1) Create BRD Confluence page
     const page = await confluenceCreatePage({
       confluenceBaseUrl: resolvedConfluenceBaseUrl,
       email: atlassianEmail,
@@ -350,75 +362,118 @@ if (!reqText && !htmlContent) {
       parentId: confluenceParentId,
     });
 
-    // Create Jira issue (optional)
-    let createdStories = [];
+    // 2) Create additional documents as child pages (FRS / SOW / RAID / TestPlan)
+    const docTypes = ["FRS", "SOW", "RAID", "TestPlan"];
+    const createdDocs = [];
 
-if (jiraProjectKey && (String(createUserStories || "true").toLowerCase() !== "false")) {
+    for (const type of docTypes) {
+      const html = await generateDocHtml(type, reqText || finalHtml, safeTitle);
+      if (!html) continue;
 
-  const stories = await generateUserStories({
-    requirementsText: reqText,
-    maxStories: Number(maxStories || 12),
-  });
+      const docPage = await confluenceCreatePage({
+        confluenceBaseUrl: resolvedConfluenceBaseUrl,
+        email: atlassianEmail,
+        token: atlassianApiToken,
+        spaceKey: confluenceSpaceKey,
+        title: `${safeTitle} - ${type}`,
+        html,
+        parentId: page.id,
+      });
 
-  for (const st of stories) {
-
-    const descParts = [];
-    if (st.description) descParts.push(st.description);
-
-    if (st.acceptanceCriteria?.length) {
-      descParts.push("\nAcceptance Criteria:");
-      st.acceptanceCriteria.forEach((ac, i) =>
-        descParts.push(`${i + 1}. ${ac}`)
-      );
+      createdDocs.push({ type, id: docPage.id, url: docPage._links?.webui });
     }
 
-    const issue = await jiraCreateIssue({
-      jiraBaseUrl: resolvedJiraBaseUrl,
-      email: atlassianEmail,
-      token: atlassianApiToken,
-      fields: {
-        project: { key: jiraProjectKey },
-
-        summary: st.summary || "Generated Story",
-
-        issuetype: { name: jiraStoryIssueType || "Story" },
-
-        description: {
-          type: "doc",
-          version: 1,
-          content: [
-            {
-              type: "paragraph",
-              content: [{ type: "text", text: descParts.join("\n") }],
-            },
-          ],
-        },
-
-        labels: st.labels || ["pm-doc-generator"],
-      },
-    });
-
-    createdStories.push(issue);
-  }
-}
+    // 3) Jira: create a parent issue (optional) + user stories (optional)
     let jiraIssue = null;
+    let createdStories = [];
 
-if (jiraProjectKey) {
-  jiraIssue = await jiraCreateIssue({
-    jiraBaseUrl: resolvedJiraBaseUrl,
-    email: atlassianEmail,
-    token: atlassianApiToken,
-    fields: {
-      project: { key: jiraProjectKey },
-      summary: safeTitle,
-      issuetype: { name: jiraIssueType || "Task" },
-    },
-  });
-}
+    if (jiraProjectKey) {
+      // Parent issue (Task by default) — gives a single umbrella ticket
+      jiraIssue = await jiraCreateIssue({
+        jiraBaseUrl: resolvedJiraBaseUrl,
+        email: atlassianEmail,
+        token: atlassianApiToken,
+        fields: {
+          project: { key: jiraProjectKey },
+          summary: safeTitle,
+          issuetype: { name: jiraIssueType || "Task" },
+          description: {
+            type: "doc",
+            version: 1,
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  { type: "text", text: (reqText || "").slice(0, 3000) || safeTitle },
+                ],
+              },
+            ],
+          },
+        },
+      });
 
-  res.json({
+      const runStories =
+        createUserStories === undefined
+          ? true
+          : String(createUserStories).toLowerCase() !== "false";
+
+      if (runStories) {
+        const stories = await generateUserStories({
+          requirementsText: reqText || "",
+          maxStories: Number(maxStories || 12),
+        });
+
+        for (const st of stories) {
+          const descParts = [];
+          if (st.description) descParts.push(st.description);
+
+          if (st.acceptanceCriteria?.length) {
+            descParts.push("\nAcceptance Criteria:");
+            st.acceptanceCriteria.forEach((ac, i) =>
+              descParts.push(`${i + 1}. ${ac}`)
+            );
+          }
+
+          const issue = await jiraCreateIssue({
+            jiraBaseUrl: resolvedJiraBaseUrl,
+            email: atlassianEmail,
+            token: atlassianApiToken,
+            fields: {
+              project: { key: jiraProjectKey },
+              summary: st.summary || safeTitle,
+              issuetype: { name: jiraStoryIssueType || "Story" },
+              description: {
+                type: "doc",
+                version: 1,
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [
+                      {
+                        type: "text",
+                        text:
+                          descParts.join("\n") ||
+                          st.description ||
+                          (reqText || "").slice(0, 2000) ||
+                          safeTitle,
+                      },
+                    ],
+                  },
+                ],
+              },
+              labels: Array.isArray(st.labels) ? st.labels.slice(0, 10) : ["pm-doc-generator"],
+            },
+          });
+
+          createdStories.push(issue);
+        }
+      }
+    }
+
+    return res.json({
       confluencePageId: page.id,
       confluenceUrl: page._links?.webui,
+      docs: createdDocs,
       jiraIssue,
       createdStories,
       usedTitle: safeTitle,
@@ -426,9 +481,10 @@ if (jiraProjectKey) {
     });
   } catch (err) {
     console.error("❌ /fully-automate error:", err.message);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
+
 
 /* =========================
    START
