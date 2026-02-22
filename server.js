@@ -355,53 +355,69 @@ if (!reqText && !htmlContent) {
 
     // Create Jira issue (optional)
     let createdStories = [];
+
 if (jiraProjectKey && (String(createUserStories || "true").toLowerCase() !== "false")) {
-  // Generate user stories from the same requirements used for the documents
+
   const stories = await generateUserStories({
-    for (const st of stories) {
+    requirementsText: reqText,
+    maxStories: Number(maxStories || 12),
+  });
 
-  const descParts = [];
-  if (st.description) descParts.push(st.description);
+  for (const st of stories) {
 
-  if (st.acceptanceCriteria?.length) {
-    descParts.push("\nAcceptance Criteria:");
-    st.acceptanceCriteria.forEach((ac, i) =>
-      descParts.push(`${i + 1}. ${ac}`)
-    );
+    const descParts = [];
+    if (st.description) descParts.push(st.description);
+
+    if (st.acceptanceCriteria?.length) {
+      descParts.push("\nAcceptance Criteria:");
+      st.acceptanceCriteria.forEach((ac, i) =>
+        descParts.push(`${i + 1}. ${ac}`)
+      );
+    }
+
+    const issue = await jiraCreateIssue({
+      jiraBaseUrl: resolvedJiraBaseUrl,
+      email: atlassianEmail,
+      token: atlassianApiToken,
+      fields: {
+        project: { key: jiraProjectKey },
+
+        summary: st.summary || "Generated Story",
+
+        issuetype: { name: jiraStoryIssueType || "Story" },
+
+        description: {
+          type: "doc",
+          version: 1,
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: descParts.join("\n") }],
+            },
+          ],
+        },
+
+        labels: st.labels || ["pm-doc-generator"],
+      },
+    });
+
+    createdStories.push(issue);
   }
+}
+    let jiraIssue = null;
 
-  const issue = await jiraCreateIssue({
-    jiraBaseUrl,
+if (jiraProjectKey) {
+  jiraIssue = await jiraCreateIssue({
+    jiraBaseUrl: resolvedJiraBaseUrl,
     email: atlassianEmail,
     token: atlassianApiToken,
     fields: {
       project: { key: jiraProjectKey },
-
-      summary: st.summary || "Generated Story",
-
-      issuetype: { name: jiraStoryIssueType || "Story" },
-
-      description: textToAdf(descParts.join("\n")),
-
-      labels: st.labels || ["pm-doc-generator"],
+      summary: safeTitle,
+      issuetype: { name: jiraIssueType || "Task" },
     },
   });
-
-  createdStories.push(issue);
 }
-    });
-    createdStories.push(issue);
-  }
-}
-
-let jiraIssue = null;
-    if (jiraProjectKey) {
-      jiraIssue = await jiraCreateIssue({
-        jiraBaseUrl,
-        email: atlassianEmail,
-        token: atlassianApiToken,
-        fields: {
-  project: { key: jiraProjectKey },
 
   // ⭐ Functionality-based name
   summary: st.summary || "Generated Story",
