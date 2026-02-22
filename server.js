@@ -202,23 +202,18 @@ app.get("/health", (req, res) => res.send("OK"));
 app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   try {
     const {
-      // Multi-tenant inputs (public testing)
-      jiraBaseUrl,
-      confluenceBaseUrl,
-      atlassianEmail,
-      atlassianApiToken,
-
-      // Confluence/Jira settings
-      confluenceSpaceKey,
-      confluenceParentId,
-      jiraProjectKey,
-      jiraIssueType,
-
-      // Content inputs
-      title,
-      htmlContent,
-      requirementsText,
-    } = req.body || {};
+  jiraBaseUrl,
+  confluenceBaseUrl,
+  atlassianEmail,
+  atlassianApiToken,
+  confluenceSpaceKey,
+  jiraProjectKey,
+  title,
+  requirementsText,
+  createUserStories,
+  maxStories,
+  jiraStoryIssueType,
+} = req.body;
 
     // ✅ title fallback so Jira/Confluence never fail
     const safeTitle =
