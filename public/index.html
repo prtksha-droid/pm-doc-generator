@@ -313,8 +313,6 @@
       border-color:#111827;
     }
     .tabpanel{padding-top:6px}
-	
-	#docgen-section-1 { display: none !important; }
 </style>
 </head>
 <body>
@@ -394,6 +392,52 @@
           <div class="fa-divider"></div>
 
           <div class="fa-card-title">Destination (for publish)</div>
+
+<div class="fa-two">
+  <div class="fa-field">
+    <label class="fa-label">Atlassian Site Domain (recommended)</label>
+    <input class="fa-input" id="faTenantDomain" placeholder="e.g., yourcompany.atlassian.net" />
+    <div class="fa-tip">If provided, the app can auto-build Jira + Confluence URLs.</div>
+  </div>
+  <div class="fa-field">
+    <label class="fa-label">Page/Issue Title (optional)</label>
+    <input class="fa-input" id="faTitle" placeholder="e.g., BRD - Checkout Improvements" />
+  </div>
+</div>
+
+<div class="fa-two">
+  <div class="fa-field">
+    <label class="fa-label">Jira Base URL (optional)</label>
+    <input class="fa-input" id="faJiraBaseUrl" placeholder="https://yourcompany.atlassian.net" />
+  </div>
+  <div class="fa-field">
+    <label class="fa-label">Confluence Base URL (optional)</label>
+    <input class="fa-input" id="faConfluenceBaseUrl" placeholder="https://yourcompany.atlassian.net/wiki" />
+  </div>
+</div>
+
+<div class="fa-two">
+  <div class="fa-field">
+    <label class="fa-label">Atlassian Email</label>
+    <input class="fa-input" id="faAtlassianEmail" placeholder="name@company.com" />
+  </div>
+  <div class="fa-field">
+    <label class="fa-label">Atlassian API Token</label>
+    <input class="fa-input" id="faAtlassianApiToken" placeholder="ATATT..." />
+  </div>
+</div>
+
+<div class="fa-two">
+  <div class="fa-field">
+    <label class="fa-label">Jira Issue Type (optional)</label>
+    <input class="fa-input" id="faJiraIssueType" placeholder="Task / Story / Bug" />
+  </div>
+  <div class="fa-field">
+    <label class="fa-label">Confluence Parent Page ID (optional)</label>
+    <input class="fa-input" id="faConfluenceParentId" placeholder="e.g., 123456" />
+  </div>
+</div>
+
           <div class="fa-two">
             <div class="fa-field">
               <label class="fa-label">Jira Project Key</label>
@@ -532,8 +576,8 @@
 
     <form id="docForm">
       <!-- 1. Template upload -->
-      <div class="section" id="docgen-section-1">
-	   ===== DOC GENERATOR SECTION 1 REMOVED (UI ONLY) =====
+      <div class="section">
+	  <!-- ===== DOC GENERATOR SECTION 1 REMOVED (UI ONLY) =====
         <div class="section-title">1. DOCX Template</div>
 
         <label for="templateDocx">Upload Template (.docx)</label>
@@ -578,7 +622,7 @@
         </div>
       </div>
 
-      <!-- 2. Project info + document type
+      <!-- 2. Project info + document type -->
       <div class="section">
         <div class="section-title"> Project Info &amp; Document Type</div>
         <div class="grid-3">
@@ -1338,6 +1382,20 @@ Return ONLY JSON with this structure (omit fields that are not applicable):
         fd.append("jiraProjectKey", $fa("faJiraProjectKey")?.value || "");
         fd.append("confluenceSpaceKey", $fa("faConfluenceSpaceKey")?.value || "");
         fd.append("labels", $fa("faLabels")?.value || "");
+
+        // ✅ NEW: Atlassian connection details from UI
+        const tenantDomain = ($fa("faTenantDomain")?.value || "").trim();
+        const jiraBaseUrl = ($fa("faJiraBaseUrl")?.value || "").trim() || (tenantDomain ? `https://${tenantDomain}` : "");
+        const confluenceBaseUrl = ($fa("faConfluenceBaseUrl")?.value || "").trim() || (tenantDomain ? `https://${tenantDomain}/wiki` : "");
+
+        fd.append("tenantDomain", tenantDomain);
+        fd.append("jiraBaseUrl", jiraBaseUrl);
+        fd.append("confluenceBaseUrl", confluenceBaseUrl);
+        fd.append("atlassianEmail", ($fa("faAtlassianEmail")?.value || "").trim());
+        fd.append("atlassianApiToken", ($fa("faAtlassianApiToken")?.value || "").trim());
+        fd.append("jiraIssueType", ($fa("faJiraIssueType")?.value || "").trim());
+        fd.append("confluenceParentId", ($fa("faConfluenceParentId")?.value || "").trim());
+        fd.append("title", ($fa("faTitle")?.value || "").trim());
 
         // ✅ NEW: actually send publish flag
         fd.append("publish", $fa("faPublish")?.checked ? "true" : "false");

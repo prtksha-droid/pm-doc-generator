@@ -100,7 +100,7 @@ async function readJsonSafe(res) {
    CONFLUENCE (generic)
 ========================= */
 async function confluenceCreatePage({
-  confluenceBaseUrl,
+  confluenceBaseUrl: resolvedConfluenceBaseUrl,
   email,
   token,
   spaceKey,
@@ -142,7 +142,7 @@ async function confluenceCreatePage({
 /* =========================
    JIRA (generic)
 ========================= */
-async function jiraCreateIssue({ jiraBaseUrl, email, token, fields }) {
+async function jiraCreateIssue({ jiraBaseUrl: resolvedJiraBaseUrl, email, token, fields }) {
   const base = stripSlash(jiraBaseUrl);
   const headers = buildHeaders(email, token);
 
@@ -208,8 +208,8 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   try {
     const {
       // Multi-tenant inputs (public testing)
-      jiraBaseUrl,
-      confluenceBaseUrl,
+      jiraBaseUrl: resolvedJiraBaseUrl,
+      confluenceBaseUrl: resolvedConfluenceBaseUrl,
       atlassianEmail,
       atlassianApiToken,
 
@@ -294,9 +294,9 @@ finalHtml = await generateBrdHtml({ requirementsText: reqText, title: safeTitle 
 
     // Create Confluence page
     const page = await confluenceCreatePage({
-      confluenceBaseUrl,
-      email: atlassianEmail,
-      token: atlassianApiToken,
+      confluenceBaseUrl: resolvedConfluenceBaseUrl,
+      email: resolvedAtlassianEmail,
+      token: resolvedAtlassianApiToken,
       spaceKey: confluenceSpaceKey,
       title: safeTitle,
       html: finalHtml,
@@ -307,9 +307,9 @@ finalHtml = await generateBrdHtml({ requirementsText: reqText, title: safeTitle 
     let jiraIssue = null;
     if (jiraProjectKey) {
       jiraIssue = await jiraCreateIssue({
-        jiraBaseUrl,
-        email: atlassianEmail,
-        token: atlassianApiToken,
+        jiraBaseUrl: resolvedJiraBaseUrl,
+        email: resolvedAtlassianEmail,
+        token: resolvedAtlassianApiToken,
         fields: {
           project: { key: jiraProjectKey },
           summary: safeTitle, // ✅ FIX: never blank
