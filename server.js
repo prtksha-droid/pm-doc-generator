@@ -228,23 +228,31 @@ ${reqText}
 ========================= */
 app.get("/health", (req, res) => res.send("OK"));
 
-async function generateUserStories({ requirementsText, maxStories = 12 }) {
+async function generateEpicsAndStories({ requirementsText }) {
   if (!openai) {
-    throw new Error("OPENAI_API_KEY missing — cannot generate user stories");
+    throw new Error("OPENAI_API_KEY missing — cannot generate backlog");
   }
 
   const prompt = `
-You are a Senior Product Manager.
+You are a Senior Agile Product Manager.
 
-Create Jira user stories.
+Break the requirements into MULTIPLE EPICS.
+Each Epic must contain STORIES.
 
 Return STRICT JSON in this exact format:
+
 {
-  "stories": [
+  "epics": [
     {
-      "summary": "Functionality name",
-      "description": "Detailed description",
-      "acceptanceCriteria": ["AC1", "AC2"]
+      "summary": "Epic Name",
+      "description": "Epic description",
+      "stories": [
+        {
+          "summary": "Story title",
+          "description": "Detailed description",
+          "acceptanceCriteria": ["AC1", "AC2"]
+        }
+      ]
     }
   ]
 }
@@ -260,21 +268,18 @@ ${requirementsText}
 
   const raw = resp.choices?.[0]?.message?.content || "";
 
-  // 🔥 Extract JSON safely even if GPT adds text
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    console.error("❌ No JSON found in user stories response:", raw);
-    return [];
+  // ⭐ Extract JSON safely even if GPT adds text
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) {
+    console.error("❌ No JSON found:", raw);
+    return { epics: [] };
   }
 
   try {
-    const parsed = JSON.parse(jsonMatch[0]);
-    return Array.isArray(parsed.stories)
-      ? parsed.stories.slice(0, maxStories)
-      : [];
+    return JSON.parse(match[0]);
   } catch (e) {
-    console.error("❌ JSON parse failed:", jsonMatch[0]);
-    return [];
+    console.error("❌ JSON parse failed:", match[0]);
+    return { epics: [] };
   }
 }
 
@@ -384,19 +389,34 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
     }
 
     // 3) Jira: create a parent issue (optional) + user stories (optional)
-    let jiraIssue = null;
-    let createdStories = [];
+    // 3) Jira: TEAM MANAGED – MULTIPLE EPICS + STORIES
+let createdStories = [];
+let createdEpics = [];
 
-    if (jiraProjectKey) {
-      // Parent issue (Task by default) — gives a single umbrella ticket
-      jiraIssue = await jiraCreateIssue({
+if (jiraProjectKey) {
+
+  const runStories =
+    createUserStories === undefined
+      ? true
+      : String(createUserStories).toLowerCase() !== "false";
+
+  if (runStories) {
+
+    const backlog = await generateEpicsAndStories({
+      requirementsText: reqText || "",
+    });
+
+    for (const epic of backlog.epics || []) {
+
+      // ⭐ CREATE EPIC
+      const epicIssue = await jiraCreateIssue({
         jiraBaseUrl: resolvedJiraBaseUrl,
         email: atlassianEmail,
         token: atlassianApiToken,
         fields: {
           project: { key: jiraProjectKey },
-          summary: safeTitle,
-          issuetype: { name: jiraIssueType || "Task" },
+          summary: epic.summary || safeTitle,
+          issuetype: { name: "Epic" },
           description: {
             type: "doc",
             version: 1,
@@ -404,7 +424,7 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
               {
                 type: "paragraph",
                 content: [
-                  { type: "text", text: (reqText || "").slice(0, 3000) || safeTitle },
+                  { type: "text", text: epic.description || reqText || safeTitle },
                 ],
               },
             ],
@@ -412,72 +432,78 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
         },
       });
 
-      const runStories =
-        createUserStories === undefined
-          ? true
-          : String(createUserStories).toLowerCase() !== "false";
+      createdEpics.push(epicIssue);
 
-      if (runStories) {
-        const stories = await generateUserStories({
-          requirementsText: reqText || "",
-          maxStories: Number(maxStories || 12),
+      // ⭐ CREATE STORIES UNDER THIS EPIC (TEAM MANAGED MAGIC)
+      for (const st of epic.stories || []) {
+
+        const descParts = [];
+        if (st.description) descParts.push(st.description);
+
+        if (st.acceptanceCriteria?.length) {
+          descParts.push("\nAcceptance Criteria:");
+          st.acceptanceCriteria.forEach((ac, i) =>
+            descParts.push(`${i + 1}. ${ac}`)
+          );
+        }
+
+        const storyIssue = await jiraCreateIssue({
+          jiraBaseUrl: resolvedJiraBaseUrl,
+          email: atlassianEmail,
+          token: atlassianApiToken,
+          fields: {
+            project: { key: jiraProjectKey },
+            summary: st.summary || safeTitle,
+            issuetype: { name: jiraStoryIssueType || "Story" },
+
+            // ⭐ THIS LINKS STORY TO EPIC (TEAM MANAGED)
+            parent: { key: epicIssue.key },
+
+            description: {
+              type: "doc",
+              version: 1,
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text:
+                        descParts.join("\n") ||
+                        st.description ||
+                        safeTitle,
+                    },
+                  ],
+                },
+              ],
+            },
+          },
         });
 
-        for (const st of stories) {
-          const descParts = [];
-          if (st.description) descParts.push(st.description);
-
-          if (st.acceptanceCriteria?.length) {
-            descParts.push("\nAcceptance Criteria:");
-            st.acceptanceCriteria.forEach((ac, i) =>
-              descParts.push(`${i + 1}. ${ac}`)
-            );
-          }
-
-          const issue = await jiraCreateIssue({
-            jiraBaseUrl: resolvedJiraBaseUrl,
-            email: atlassianEmail,
-            token: atlassianApiToken,
-            fields: {
-              project: { key: jiraProjectKey },
-              summary: st.summary || safeTitle,
-              issuetype: { name: jiraStoryIssueType || "Story" },
-              description: {
-                type: "doc",
-                version: 1,
-                content: [
-                  {
-                    type: "paragraph",
-                    content: [
-                      {
-                        type: "text",
-                        text:
-                          descParts.join("\n") ||
-                          st.description ||
-                          (reqText || "").slice(0, 2000) ||
-                          safeTitle,
-                      },
-                    ],
-                  },
-                ],
-              },
-              labels: Array.isArray(st.labels) ? st.labels.slice(0, 10) : ["pm-doc-generator"],
-            },
-          });
-
-          createdStories.push(issue);
-        }
+        createdStories.push(storyIssue);
       }
     }
+  }
+}
+
 
     return res.json({
+		
+		
+		// ⭐ THIS IS WHAT YOUR UI EXPECTS
+  backlog: {
+    epics: createdEpics || [],
+    stories: createdStories || [],
+  },
       confluencePageId: page.id,
       confluenceUrl: page._links?.webui,
       docs: createdDocs,
-      jiraIssue,
       createdStories,
       usedTitle: safeTitle,
       generated: !((htmlContent || "").toString().trim()),
+	  
+	   
+	  
     });
   } catch (err) {
     console.error("❌ /fully-automate error:", err.message);
