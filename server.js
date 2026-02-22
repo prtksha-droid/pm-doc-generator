@@ -195,6 +195,35 @@ ${reqText}
 }
 
 /* =========================
+   GENERIC DOCUMENT GENERATOR (NEW)
+========================= */
+async function generateDocHtml(type, reqText, title) {
+  if (!openai) {
+    throw new Error("OPENAI_API_KEY missing in Render Environment");
+  }
+
+  const prompt = `
+You are a Senior Technical Program Manager.
+
+Create a professional ${type} document in CLEAN HTML format.
+
+Document Title: ${title}
+
+Use structured headings and bullet lists.
+
+Requirements:
+${reqText}
+`;
+
+  const resp = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  return resp.choices?.[0]?.message?.content?.trim() || "";
+}
+
+/* =========================
    ROUTES
 ========================= */
 app.get("/health", (req, res) => res.send("OK"));
@@ -205,22 +234,15 @@ async function generateUserStories({ requirementsText, maxStories = 12 }) {
   }
 
   const prompt = `
-You are a Senior Agile Product Owner.
+You are a Senior Product Manager.
 
-From the requirements below, generate Jira user stories.
+Create Jira user stories.
 
-Return STRICT JSON ONLY in this format:
+VERY IMPORTANT:
+- summary MUST be the FUNCTIONALITY NAME
+- do NOT use generic titles
 
-{
-  "stories": [
-    {
-      "summary": "string",
-      "description": "string",
-      "acceptanceCriteria": ["string"],
-      "labels": ["string"]
-    }
-  ]
-}
+Return STRICT JSON.
 
 Requirements:
 ${requirementsText}
@@ -313,7 +335,7 @@ if (!reqText && !htmlContent) {
       "Empty content: provide htmlContent OR requirementsText OR upload a file",
   });
 }
-      finalHtml = await generateBrdHtml({ requirementsText: reqText, title: safeTitle });
+      finalHtml = await generateBrdHtml({ reqText, title: safeTitle });
 
       if (!finalHtml) {
         return res.status(500).json({ error: "BRD generation returned empty output" });
@@ -350,8 +372,8 @@ if (jiraProjectKey && (String(createUserStories || "true").toLowerCase() !== "fa
 
     const issue = await jiraCreateIssue({
       jiraBaseUrl: resolvedJiraBaseUrl,
-      email: resolvedEmail,
-      token: resolvedToken,
+      email: atlassianEmail,
+token: atlassianApiToken,
       fields: {
         project: { key: jiraProjectKey },
         summary: st.summary,
@@ -371,22 +393,27 @@ let jiraIssue = null;
         email: atlassianEmail,
         token: atlassianApiToken,
         fields: {
-          project: { key: jiraProjectKey },
-          summary: safeTitle, // ✅ FIX: never blank
-          issuetype: { name: jiraIssueType || "Task" },
-          description: {
-            type: "doc",
-            version: 1,
-            content: [
-              {
-                type: "paragraph",
-                content: [
-                  { type: "text", text: "Created via PM Doc Generator" },
-                ],
-              },
-            ],
-          },
-        },
+  project: { key: jiraProjectKey },
+
+  // ⭐ Functionality-based name
+  summary: st.summary || "Generated Story",
+
+  issuetype: { name: jiraStoryIssueType || "Story" },
+
+  // ⭐ Proper Jira description (ADF format)
+  description: textToAdf(
+    [
+      `Functionality: ${st.summary}`,
+      "",
+      st.description || "",
+      "",
+      "Acceptance Criteria:",
+      ...(st.acceptanceCriteria || []).map((a, i) => `${i + 1}. ${a}`),
+    ].join("\n")
+  ),
+
+  labels: st.labels || ["pm-doc-generator"],
+}
       });
     }
 
