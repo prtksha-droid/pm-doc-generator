@@ -54,7 +54,7 @@ if (!openai) console.warn("⚠️ OPENAI_API_KEY missing in environment");
 ========================= */
 function extractRequirements(req) {
   // 1. Prefer textarea
-  let text = (req.body?.requirementsText || "").toString().trim();
+  let text = (req.body?.reqText || "").toString().trim();
 
   // 2. Fallback to uploaded file (txt / doc text)
   if (!text && req.files && req.files.length > 0) {
@@ -158,7 +158,7 @@ async function jiraCreateIssue({ jiraBaseUrl, email, token, fields }) {
 /* =========================
    BRD GENERATOR (NEW)
 ========================= */
-async function generateBrdHtml({ requirementsText, title }) {
+async function generateBrdHtml({ reqText, title }) {
   if (!openai) {
     throw new Error("OPENAI_API_KEY missing in Render Environment");
   }
@@ -223,7 +223,7 @@ Return STRICT JSON ONLY in this format:
 }
 
 Requirements:
-${requirementsText}
+${reqText}
 `;
 
   const resp = await openai.chat.completions.create({
@@ -268,7 +268,7 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   maxStories,
   jiraStoryIssueType,
 } = req.body;
-
+const reqText = extractRequirements(req);
     // ✅ title fallback so Jira/Confluence never fail
     const safeTitle =
       (typeof title === "string" ? title.trim() : "") ||
