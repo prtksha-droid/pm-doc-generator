@@ -194,7 +194,10 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
       requirementsText,
     } = req.body;
 
-    const safeTitle = title || "PM Docs";
+    const safeTitle =
+  (title || "PM Docs") +
+  " - " +
+  new Date().toISOString().replace(/[:.]/g, "-");
 
     const resolvedJiraBaseUrl = jiraBaseUrl || process.env.JIRA_BASE_URL;
     const resolvedConfluenceBaseUrl =
