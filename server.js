@@ -325,10 +325,7 @@ if (!resolvedJiraBaseUrl || !resolvedConfluenceBaseUrl) {
 
     // ✅ NEW: If htmlContent is empty, generate BRD HTML from requirementsText
     let finalHtml = (htmlContent || "").toString().trim();
-
     if (!finalHtml) {
-      const reqText = extractRequirements(req);
-
 if (!reqText && !htmlContent) {
   return res.status(400).json({
     error:
@@ -344,7 +341,7 @@ if (!reqText && !htmlContent) {
 
     // Create Confluence page
     const page = await confluenceCreatePage({
-      confluenceBaseUrl,
+      confluenceBaseUrl: resolvedConfluenceBaseUrl,
       email: atlassianEmail,
       token: atlassianApiToken,
       spaceKey: confluenceSpaceKey,
@@ -419,32 +416,11 @@ if (jiraProjectKey) {
   });
 }
 
-  // ⭐ Functionality-based name
-  summary: st.summary || "Generated Story",
-
-  issuetype: { name: jiraStoryIssueType || "Story" },
-
-  // ⭐ Proper Jira description (ADF format)
-  description: textToAdf(
-    [
-      `Functionality: ${st.summary}`,
-      "",
-      st.description || "",
-      "",
-      "Acceptance Criteria:",
-      ...(st.acceptanceCriteria || []).map((a, i) => `${i + 1}. ${a}`),
-    ].join("\n")
-  ),
-
-  labels: st.labels || ["pm-doc-generator"],
-}
-      });
-    }
-
-    res.json({
+  res.json({
       confluencePageId: page.id,
       confluenceUrl: page._links?.webui,
       jiraIssue,
+      createdStories,
       usedTitle: safeTitle,
       generated: !((htmlContent || "").toString().trim()),
     });
