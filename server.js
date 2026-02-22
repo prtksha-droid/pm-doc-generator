@@ -258,8 +258,9 @@ app.post("/fully-automate", maybeMulterAny, async (req, res) => {
   atlassianEmail,
   atlassianApiToken,
   confluenceSpaceKey,
-  confluenceParentId,   // ⭐ ADD THIS LINE
+  confluenceParentId,
   jiraProjectKey,
+  jiraIssueType,   // ⭐ ADD THIS
   title,
   requirementsText,
   htmlContent,
