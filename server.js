@@ -336,7 +336,7 @@ if (!reqText && !htmlContent) {
 if (jiraProjectKey && (String(createUserStories || "true").toLowerCase() !== "false")) {
   // Generate user stories from the same requirements used for the documents
   const stories = await generateUserStories({
-    requirementsText: requirementsText || "",
+    requirementsText: reqText || "",
     maxStories: Number(maxStories || 12),
   });
 
