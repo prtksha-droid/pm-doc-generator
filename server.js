@@ -85,9 +85,21 @@ async function confluenceCreatePage({
     { method: "POST", headers, body: JSON.stringify(payload) }
   );
 
-  const data = await readJsonSafe(res);
-  if (!res.ok) throw new Error("Confluence create failed");
-  return data;
+  const rawText = await res.text();
+
+if (!res.ok) {
+  console.error("❌ Confluence RAW RESPONSE:", rawText);
+  throw new Error(`Confluence error ${res.status}: ${rawText}`);
+}
+
+let data = {};
+try {
+  data = rawText ? JSON.parse(rawText) : {};
+} catch {
+  console.warn("⚠️ Confluence response not JSON");
+}
+
+return data;
 }
 
 async function attachFile({
