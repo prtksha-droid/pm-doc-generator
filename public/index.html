@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="chat-widget.css">
   <script src="chat-widget.js" defer></script>
-
+   <link rel="icon" href="data:,">
   <style>
     * {
       box-sizing: border-box;
@@ -344,8 +344,8 @@
     
 <div class="tabs-wrap" id="main-tabs">
   <div class="tabs-bar" role="tablist" aria-label="PM Doc Generator tabs">
-    <button id="tab-automate" class="tab-btn" role="tab" aria-selected="true" aria-controls="panel-automate" type="button">⚡ Fully Automate</button>
-    <button id="tab-docgen" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-docgen" type="button">📄 Doc Generator</button>
+    <button id="tab-automate" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-automate" type="button">⚡ Fully Automate</button>
+    <button id="tab-docgen" class="tab-btn" role="tab" aria-selected="true" aria-controls="panel-docgen" type="button">📄 Doc Generator</button>
   </div>
 
   <div id="panel-automate" class="tabpanel" role="tabpanel" aria-labelledby="tab-automate">
@@ -563,7 +563,7 @@
     </section>
   </div>
 
-  <div id="panel-docgen" class="tabpanel" role="tabpanel" aria-labelledby="tab-docgen" hidden>
+  <div id="panel-docgen" class="tabpanel" role="tabpanel">
 <hr>
 
     <p>
@@ -577,7 +577,7 @@
     <form id="docForm">
       <!-- 1. Template upload -->
       <div class="section">
-	  <!-- ===== DOC GENERATOR SECTION 1 REMOVED (UI ONLY) =====
+	  <!-- ===== DOC GENERATOR SECTION 1 REMOVED (UI ONLY)
         <div class="section-title">1. DOCX Template</div>
 
         <label for="templateDocx">Upload Template (.docx)</label>
@@ -586,7 +586,6 @@
           id="templateDocx"
           name="templateDocx"
           accept=".docx"
-          required
         />
         <div class="helper">
           This is your sample template. In Word, add placeholders like:
@@ -595,33 +594,17 @@
           <code>{objectives}</code>, <code>{inScope}</code>, <code>{outScope}</code>,
           <code>{stakeholders}</code>, <code>{highLevelReqs}</code>, <code>{assumptions}</code>,
           <code>{risks}</code>, <code>{requirementsTextArea}</code>, etc.
-		  
-		  <label>Jira Base URL</label>
-<input name="jiraBaseUrl" placeholder="https://yourcompany.atlassian.net" required />
+		
+-->
+<div class="section-title">1. DOCX Template</div>
 
-<label>Confluence Base URL</label>
-<input name="confluenceBaseUrl" placeholder="https://yourcompany.atlassian.net/wiki" required />
-
-<label>Atlassian Email</label>
-<input name="atlassianEmail" placeholder="your@email.com" required />
-
-<label>Atlassian API Token</label>
-<input name="atlassianApiToken" placeholder="ATATT..." required />
-
-<label>Confluence Space Key</label>
-<input name="confluenceSpaceKey" placeholder="ENG or ~accountId" required />
-
-<label>Jira Project Key (optional)</label>
-<input name="jiraProjectKey" placeholder="MP" />
-
-<label>Title</label>
-<input name="title" value="BRD - Test" required />
-
-<label>Requirements (paste here)</label>
-<textarea name="requirementsText" rows="10" placeholder="Paste requirements here..." required></textarea>
-        </div>
-      </div>
-
+<label for="templateDocx">Upload Template (.docx)</label>
+<input
+  type="file"
+  id="templateDocx"
+  name="templateDocx"
+  accept=".docx"
+/>
       <!-- 2. Project info + document type -->
       <div class="section">
         <div class="section-title"> Project Info &amp; Document Type</div>
@@ -682,6 +665,7 @@
               <option value="raid">RAID</option>
               <option value="status">Status</option>
               <option value="minutes">Minutes</option>
+			  <option value="testplan">Test Plan</option>
             </select>
             <div class="helper">
               This is mainly used in AI logic and file naming. Your DOCX template controls the layout.
@@ -798,13 +782,14 @@
       <!-- 5. Requirements .txt upload + AI checkbox -->
       <div class="section">
         <div class="section-title">5. Requirements / Notes (upload .txt)</div>
+		<input
+  type="file"
+  id="requirementsFile"
+  name="requirementsFile"
+  accept=".txt"
+/>
         <label for="requirementsFile">Requirements / Notes File (.txt)</label>
-        <input
-          type="file"
-          id="requirementsFile"
-          name="requirementsFile"
-          accept=".txt"
-        />
+       
         <div class="helper">
           The content of this file will be appended to the Requirements / Notes textarea.
         </div>
@@ -831,6 +816,7 @@
         </ul>
 
         <button type="submit" id="generateBtn">Generate DOCX</button>
+		
         <div id="status" class="status"></div>
       </div>
     </form>
@@ -961,7 +947,73 @@
         } else if (docType === "minutes") {
           docTypeInstructions =
             "Document type is Minutes of Meeting. Focus on agenda, discussion points, decisions, and action items.";
-        }
+        } if (docType === "testplan") {
+
+  const reqText = data.requirements || "";
+
+  const html = await generateDocHtml(
+    "TestPlan",
+    reqText,
+    data.projectName || "Test Plan"
+  );
+
+  const parsedBlocks = htmlToDocxParagraphs(html);
+
+  children.push(
+    new Paragraph({
+      text: "Test Plan",
+      heading: HeadingLevel.HEADING_2,
+    })
+  );
+
+  parsedBlocks.forEach(p => children.push(p));
+
+  // ⭐ DO NOT PUT HTML INTO BACKGROUND
+  // Instead convert to TEXT STRUCTURE LIKE FULLY AUTOMATE
+
+  const clean = html
+    .replace(/<h[1-6][^>]*>/gi, "\n\n")
+    .replace(/<\/h[1-6]>/gi, "\n")
+    .replace(/<li>/gi, "• ")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .trim();
+
+  function htmlToDocxParagraphs(html) {
+  const blocks = [];
+
+  const text = html
+    .replace(/```html/gi, "")
+    .replace(/```/g, "");
+
+  const lines = text.split(/\n+/);
+
+  lines.forEach(line => {
+    const l = line.trim();
+    if (!l) return;
+
+    if (l.toLowerCase().includes("test plan document")) {
+      blocks.push(new Paragraph({
+        text: l.replace(/<[^>]+>/g, ""),
+        heading: HeadingLevel.HEADING_1
+      }));
+    }
+    else if (/project overview|test objectives|testing scope|deliverables|tools|schedule|conclusion/i.test(l)) {
+      blocks.push(new Paragraph({
+        text: l.replace(/<[^>]+>/g, ""),
+        heading: HeadingLevel.HEADING_2
+      }));
+    }
+    else {
+      blocks.push(new Paragraph({
+        text: l.replace(/<[^>]+>/g, "")
+      }));
+    }
+  });
+
+  return blocks;
+}
+}
 
         const prompt = `
 You are helping a project manager prepare a structured ${docType.toUpperCase()} document.
@@ -1023,7 +1075,19 @@ Return ONLY JSON with this structure (omit fields that are not applicable):
         }
 
         const data = await res.json();
-        const parsed = data.parsed || {};
+
+let parsed = data.parsed || data || {};
+
+// ⭐ FIX: remove ```json markdown fences if AI adds them
+if (typeof parsed === "string") {
+  parsed = parsed.replace(/```json/g, "").replace(/```/g, "").trim();
+  try {
+    parsed = JSON.parse(parsed);
+  } catch (e) {
+    console.warn("JSON parse still failed:", e);
+    parsed = {};
+  }
+}
 
         // Fill structured fields if not already filled
         const setIfEmpty = (id, key) => {
@@ -1075,7 +1139,11 @@ Return ONLY JSON with this structure (omit fields that are not applicable):
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-
+	  // ⭐ Force AI run if requirements exist
+if (requirementsTextarea && requirementsTextarea.value.trim()) {
+  await callAiDraftIfNeeded();
+}
+try {
       if (aiStatus) {
         aiStatus.textContent = "";
         aiStatus.className = "status";
@@ -1083,26 +1151,22 @@ Return ONLY JSON with this structure (omit fields that are not applicable):
       if (aiStatus2) {
         aiStatus2.textContent = "";
         aiStatus2.className = "status";
-      }
-
+      } 
       const templateInput = document.getElementById("templateDocx");
-      if (!templateInput.files || !templateInput.files[0]) {
-        statusEl.textContent = "Please upload a DOCX template.";
-        statusEl.classList.add("status--error");
-        return;
-      }
 
-      generateBtn.disabled = true;
-      statusEl.textContent = "Preparing document...";
+if (!templateInput) {
+  statusEl.textContent = "Template input not found.";
+  generateBtn.disabled = false;
+  return;
+}
 
-      try {
-        const useAi = useAiCheckbox && useAiCheckbox.checked;
-        if (useAi) {
-          await callAiDraftIfNeeded();
-        }
 
-        const formData = new FormData(form);
-        formData.append("templateDocx", templateInput.files[0]);
+const formData = new FormData(form);
+
+// IMPORTANT:
+// DO NOT manually append templateDocx again.
+// FormData already includes it because input has name="templateDocx".
+        
 
         const res = await fetch("/generate-docx", {
           method: "POST",
@@ -1117,38 +1181,45 @@ Return ONLY JSON with this structure (omit fields that are not applicable):
           return;
         }
 
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
+        const contentType = res.headers.get("content-type") || "";
 
-        const projectName = document
-          .getElementById("projectName")
-          ?.value?.trim();
-        const docType = document.getElementById("docType")?.value || "brd";
+// ⭐ If backend returned JSON, DO NOT download as docx
+if (contentType.includes("application/json")) {
+  const data = await res.json();
+  statusEl.textContent = data.message || "Generated without template.";
+  statusEl.classList.add("status--success");
+  return;
+}
 
-        const safeProject = (projectName || "project")
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "");
+// Otherwise download DOCX
+const blob = await res.blob();
+const url = window.URL.createObjectURL(blob);
+const a = document.createElement("a");
 
-        a.href = url;
-        a.download = `${safeProject || "project"}-${docType || "brd"}-generated.docx`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+const projectName = document.getElementById("projectName")?.value?.trim();
+const docType = document.getElementById("docType")?.value || "brd";
 
-        statusEl.textContent = "Document generated and downloaded successfully.";
-        statusEl.classList.add("status--success");
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent =
-          "Unexpected error generating document: " + (err.message || "");
-        statusEl.classList.add("status--error");
-      } finally {
-        generateBtn.disabled = false;
-      }
-    });
+const safeProject = (projectName || "project")
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-|-$/g, "");
+
+a.href = url;
+a.download = `${safeProject}-${docType}-generated.docx`;
+document.body.appendChild(a);
+a.click();
+a.remove();
+window.URL.revokeObjectURL(url);
+
+statusEl.textContent = "Document generated successfully.";
+statusEl.classList.add("status--success");
+
+} catch (err) {
+  console.error(err);
+  statusEl.textContent = "Unexpected error: " + (err.message || err);
+  statusEl.classList.add("status--error");
+}
+});
   </script>
 
   <!-- =========================================================

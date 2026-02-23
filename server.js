@@ -5,6 +5,10 @@ const multer = require("multer");
 const cors = require("cors");
 const fs = require("fs");
 const OpenAI = require("openai");
+const path = require("path");
+const PizZip = require("pizzip");
+const Docxtemplater = require("docxtemplater");
+const { Document, Packer, Paragraph, HeadingLevel } = require("docx");
 
 const app = express();
 
@@ -19,6 +23,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
+
+function extractPlaceholders(doc) {
+  const text = doc.getFullText();
+  const matches = text.match(/{([^}]+)}/g) || [];
+  return [...new Set(matches.map(m => m.replace(/[{}]/g, "").trim()))];
+}
 
 /* =========================
    UPLOADS (Render-safe)
@@ -205,11 +215,15 @@ async function generateDocHtml(type, reqText, title) {
   const prompt = `
 You are a Senior Technical Program Manager.
 
-Create a professional ${type} document in CLEAN HTML format.
+Create a professional ${type} document in CLEAN TEXT format.
+
+IMPORTANT RULES:
+- DO NOT include HTML tags
+- DO NOT include CSS
+- DO NOT include code blocks
+- Use headings and bullet lists using plain text only
 
 Document Title: ${title}
-
-Use structured headings and bullet lists.
 
 Requirements:
 ${reqText}
@@ -227,6 +241,106 @@ ${reqText}
    ROUTES
 ========================= */
 app.get("/health", (req, res) => res.send("OK"));
+
+app.post(
+  "/generate-docx",
+  uploadMemory.fields([
+    { name: "templateDocx", maxCount: 1 },
+    { name: "requirementsFile", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      const data = { ...req.body };
+      const docType = (req.body.docType || "").toLowerCase();
+
+      data.background = data.background || data.executiveSummary || "";
+      data.objectives = data.objectives || data.highLevelReqs || "";
+      data.inScope = data.inScope || data.cleanedRequirements || "";
+      data.requirements = data.requirements || data.cleanedRequirements || "";
+
+      console.log("FORM DATA RECEIVED:", data);
+
+      // ⭐ SAME AI AS FULLY AUTOMATE
+      if (docType === "testplan") {
+        const reqText = data.requirements || "";
+
+        const html = await generateDocHtml(
+          "TestPlan",
+          reqText,
+          data.projectName || "Test Plan"
+        );
+
+        const cleanText = html
+          .replace(/<[^>]+>/g, "")
+          .replace(/&nbsp;/g, " ")
+          .trim();
+
+        data.testPlan = cleanText;   // IMPORTANT: not background
+      }
+
+      const children = [];
+
+      children.push(
+        new Paragraph({
+          text: data.projectName || "Project Document",
+          heading: HeadingLevel.HEADING_1,
+        })
+      );
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (!value || key === "projectName") return;
+
+        const title = key
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (s) => s.toUpperCase());
+
+        String(value)
+  .split(/\n+/)
+  .forEach(line => {
+    const clean = line.trim();
+    if (!clean) return;
+
+    // ⭐ Detect numbered headings like "1. Introduction"
+    if (/^\d+\.\s/.test(clean)) {
+      children.push(
+        new Paragraph({
+          text: clean.replace(/^\d+\.\s*/, ""),
+          heading: HeadingLevel.HEADING_2,
+        })
+      );
+    } else {
+      children.push(
+        new Paragraph({
+          text: clean,
+        })
+      );
+    }
+  });
+
+        children.push(new Paragraph(String(value)));
+      });
+
+      const autoDoc = new Document({
+        sections: [{ children }],
+      });
+
+      const buffer = await Packer.toBuffer(autoDoc);
+
+      res.status(200);
+      res.set({
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": 'attachment; filename="generated.docx"',
+        "Content-Length": buffer.length,
+      });
+
+      return res.end(Buffer.from(buffer));
+    } catch (err) {
+      console.error("generate-docx error:", err);
+      return res.status(500).send("Unexpected error generating document.");
+    }
+  }
+);
 
 async function generateEpicsAndStories({ requirementsText }) {
   if (!openai) {
@@ -511,6 +625,41 @@ if (jiraProjectKey) {
   }
 });
 
+app.post("/ai-draft", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: "Missing prompt" });
+    }
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+    });
+
+    const text = response.choices?.[0]?.message?.content || "";
+
+    let parsed = {};
+
+try {
+  // ⭐ Use the correct variable name (text)
+  let clean = text
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  parsed = JSON.parse(clean);
+} catch (e) {
+  console.error("AI returned invalid JSON:", text);
+}
+
+    res.json({ parsed });
+  } catch (err) {
+    console.error("ai-draft error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /* =========================
    START
