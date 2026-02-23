@@ -8,8 +8,8 @@ const OpenAI = require("openai");
 const path = require("path");
 const PizZip = require("pizzip");
 const Docxtemplater = require("docxtemplater");
-const { Document, Packer, Paragraph, HeadingLevel } = require("docx");
 
+const { Document, Packer, Paragraph, HeadingLevel, TextRun } = require("docx");
 const app = express();
 
 /* =========================
@@ -215,13 +215,47 @@ async function generateDocHtml(type, reqText, title) {
   const prompt = `
 You are a Senior Technical Program Manager.
 
-Create a professional ${type} document in CLEAN TEXT format.
+Create a professional ${type} document.
 
-IMPORTANT RULES:
-- DO NOT include HTML tags
-- DO NOT include CSS
-- DO NOT include code blocks
-- Use headings and bullet lists using plain text only
+IMPORTANT:
+Each document type must have DIFFERENT sections.
+
+IF type is FRS:
+1. Introduction
+2. Functional Requirements
+3. Non-Functional Requirements
+4. User Stories
+5. Acceptance Criteria
+6. Assumptions
+7. Risks
+
+IF type is SOW:
+1. Overview
+2. Scope of Work
+3. Deliverables
+4. Timeline
+5. Roles & Responsibilities
+6. Pricing Assumptions
+7. Risks
+
+IF type is RAID:
+1. Risks
+2. Assumptions
+3. Issues
+4. Dependencies
+
+IF type is TestPlan:
+1. Introduction
+2. Objectives
+3. Scope
+4. Test Strategy
+5. Test Environment
+6. Risks
+
+RULES:
+- Use numbered headings.
+- Use "- " for bullets.
+- Plain text only (NO HTML).
 
 Document Title: ${title}
 
@@ -261,22 +295,20 @@ app.post(
       console.log("FORM DATA RECEIVED:", data);
 
       // ⭐ SAME AI AS FULLY AUTOMATE
-      if (docType === "testplan") {
-        const reqText = data.requirements || "";
+      // ⭐ GENERATE STRUCTURED CONTENT FOR ALL DOC TYPES
+if (docType) {
+  const reqText = data.requirements || "";
 
-        const html = await generateDocHtml(
-          "TestPlan",
-          reqText,
-          data.projectName || "Test Plan"
-        );
+  const structured = await generateDocHtml(
+    docType.toUpperCase(),
+    reqText,
+    data.projectName || "Project Document"
+  );
 
-        const cleanText = html
-          .replace(/<[^>]+>/g, "")
-          .replace(/&nbsp;/g, " ")
-          .trim();
-
-        data.testPlan = cleanText;   // IMPORTANT: not background
-      }
+  if (structured) {
+    data.generatedContent = structured;
+  }
+}
 
       const children = [];
 
@@ -288,11 +320,16 @@ app.post(
       );
 
       Object.entries(data).forEach(([key, value]) => {
-        if (!value || key === "projectName") return;
+        // ⭐ If AI structured content exists, render ONLY that
+if (data.generatedContent && key !== "generatedContent") return;
 
         const title = key
           .replace(/([A-Z])/g, " $1")
           .replace(/^./, (s) => s.toUpperCase());
+
+        
+
+    // ⭐ Detect numbered headings like "1. Introduction"
 
         String(value)
   .split(/\n+/)
@@ -300,24 +337,43 @@ app.post(
     const clean = line.trim();
     if (!clean) return;
 
-    // ⭐ Detect numbered headings like "1. Introduction"
+    // ⭐ MAIN NUMBERED SECTIONS → BIG HEADING
     if (/^\d+\.\s/.test(clean)) {
       children.push(
         new Paragraph({
           text: clean.replace(/^\d+\.\s*/, ""),
-          heading: HeadingLevel.HEADING_2,
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 300, after: 150 },
         })
       );
-    } else {
+    }
+
+    // ⭐ BULLET LINES
+    else if (clean.startsWith("-")) {
       children.push(
         new Paragraph({
-          text: clean,
+          text: clean.replace(/^-+\s*/, ""),
+          bullet: { level: 0 },
+          spacing: { after: 80 },
+        })
+      );
+    }
+
+    // ⭐ NORMAL TEXT
+    else {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: clean,
+              size: 24,   // nicer readable font size
+            }),
+          ],
+          spacing: { after: 120 },
         })
       );
     }
   });
-
-        children.push(new Paragraph(String(value)));
       });
 
 // ⭐ IF TEMPLATE EXISTS → USE TEMPLATE ENGINE
