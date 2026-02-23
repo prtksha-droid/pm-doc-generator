@@ -320,6 +320,34 @@ app.post(
         children.push(new Paragraph(String(value)));
       });
 
+// ⭐ IF TEMPLATE EXISTS → USE TEMPLATE ENGINE
+if (req.files?.templateDocx?.[0]) {
+  const content = req.files.templateDocx[0].buffer;
+
+  const zip = new PizZip(content);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+  });
+
+  doc.setData(data);
+  doc.render();
+
+  const buffer = doc.getZip().generate({
+    type: "nodebuffer",
+  });
+
+  res.status(200);
+  res.set({
+    "Content-Type":
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "Content-Disposition": 'attachment; filename="generated.docx"',
+    "Content-Length": buffer.length,
+  });
+
+  return res.end(buffer);
+}
+
       const autoDoc = new Document({
         sections: [{ children }],
       });
