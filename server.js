@@ -215,47 +215,15 @@ async function generateDocHtml(type, reqText, title) {
   const prompt = `
 You are a Senior Technical Program Manager.
 
-Create a professional ${type} document.
+Generate ONLY a ${type} document.
 
-IMPORTANT:
-Each document type must have DIFFERENT sections.
+VERY IMPORTANT:
+Create ONLY the ${type}.
+Do NOT include any other document type.
+Do NOT mix FRS, SOW, RAID, or TestPlan structures.
 
-IF type is FRS:
-1. Introduction
-2. Functional Requirements
-3. Non-Functional Requirements
-4. User Stories
-5. Acceptance Criteria
-6. Assumptions
-7. Risks
-
-IF type is SOW:
-1. Overview
-2. Scope of Work
-3. Deliverables
-4. Timeline
-5. Roles & Responsibilities
-6. Pricing Assumptions
-7. Risks
-
-IF type is RAID:
-1. Risks
-2. Assumptions
-3. Issues
-4. Dependencies
-
-IF type is TestPlan:
-1. Introduction
-2. Objectives
-3. Scope
-4. Test Strategy
-5. Test Environment
-6. Risks
-
-RULES:
-- Use numbered headings.
-- Use "- " for bullets.
-- Plain text only (NO HTML).
+Use professional numbered headings and "- " bullets.
+Plain text only (NO HTML).
 
 Document Title: ${title}
 
