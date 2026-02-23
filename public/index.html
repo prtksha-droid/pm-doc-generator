@@ -816,6 +816,9 @@
         </ul>
 
         <button type="submit" id="generateBtn">Generate DOCX</button>
+		<div id="loader" style="display:none; margin-top:10px; font-weight:bold;">
+  ⏳ Generating document... Please wait
+</div>
 		
         <div id="status" class="status"></div>
       </div>
@@ -1139,6 +1142,12 @@ if (typeof parsed === "string") {
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+	  const loader = document.getElementById("loader");
+if (loader) loader.style.display = "block";
+
+generateBtn.disabled = true;
+statusEl.textContent = "";
+statusEl.className = "status";
 	  // ⭐ Force AI run if requirements exist
 if (requirementsTextarea && requirementsTextarea.value.trim()) {
   await callAiDraftIfNeeded();
@@ -1218,6 +1227,10 @@ statusEl.classList.add("status--success");
   console.error(err);
   statusEl.textContent = "Unexpected error: " + (err.message || err);
   statusEl.classList.add("status--error");
+}
+finally {
+  if (loader) loader.style.display = "none";
+  generateBtn.disabled = false;
 }
 });
   </script>
