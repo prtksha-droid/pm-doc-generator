@@ -8,7 +8,7 @@ const OpenAI = require("openai");
 const path = require("path");
 const PizZip = require("pizzip");
 const Docxtemplater = require("docxtemplater");
-
+const pdfParse = require("pdf-parse");
 const { Document, Packer, Paragraph, HeadingLevel, TextRun } = require("docx");
 const app = express();
 
@@ -38,7 +38,10 @@ if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 const upload = multer({ dest: "uploads/" });
 const uploadMemory = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: {
+    fileSize: 20 * 1024 * 1024,   // ⭐ allow 20MB files
+    fieldSize: 20 * 1024 * 1024,  // ⭐ allow large text fields
+  },
 });
 
 // ✅ Run multer only when request is multipart/form-data (fixes “Failed to fetch” for JSON)
@@ -218,12 +221,49 @@ You are a Senior Technical Program Manager.
 Generate ONLY a ${type} document.
 
 VERY IMPORTANT:
+Formatting Rules:
+
+- DO NOT add manual numbering like "1." or "2." in the text.
+- Write clean section headings only.
+- The system will apply numbering automatically.
+- Use headings like:
+  Introduction
+  Scope
+  Test Strategy
+  Risks
 Create ONLY the ${type}.
 Do NOT include any other document type.
 Do NOT mix FRS, SOW, RAID, or TestPlan structures.
 
 Use professional numbered headings and "- " bullets.
 Plain text only (NO HTML).
+
+IF type is TestPlan:
+
+Create a DETAILED QA Test Plan derived from the SRS.
+
+The Test Plan MUST include:
+
+Introduction
+Test Objectives
+Scope based on SRS modules
+Features to be Tested (mapped from SRS requirements)
+Features NOT to be Tested
+Test Strategy
+Test Levels (Unit, Integration, System, UAT)
+Functional Testing Approach
+Non-Functional Testing (Performance, Security, Accessibility)
+Test Environment
+Test Data Strategy
+Entry Criteria
+Exit Criteria
+Risk Analysis
+Traceability Matrix (Requirement → Test Area)
+
+Formatting Rules:
+- DO NOT manually add numbering like "1."
+- Write clean headings only.
+- The system will apply numbering automatically.
 
 Document Title: ${title}
 
@@ -253,6 +293,17 @@ app.post(
   async (req, res) => {
     try {
       const data = { ...req.body };
+	  // ⭐ Read uploaded requirements file (PDF or TXT)
+if (req.files?.requirementsFile?.[0]) {
+  const file = req.files.requirementsFile[0];
+
+  if (file.mimetype === "application/pdf") {
+    const pdf = await pdfParse(file.buffer);
+    data.requirements = pdf.text;
+  } else {
+    data.requirements = file.buffer.toString("utf8");
+  }
+}
       const docType = (req.body.docType || "").toLowerCase();
 
       data.background = data.background || data.executiveSummary || "";
@@ -307,14 +358,17 @@ if (data.generatedContent && key !== "generatedContent") return;
 
     // ⭐ MAIN NUMBERED SECTIONS → BIG HEADING
     if (/^\d+\.\s/.test(clean)) {
-      children.push(
-        new Paragraph({
-          text: clean.replace(/^\d+\.\s*/, ""),
-          heading: HeadingLevel.HEADING_1,
-          spacing: { before: 300, after: 150 },
-        })
-      );
-    }
+  children.push(
+    new Paragraph({
+      text: clean.replace(/^\d+\.\s/, ""),
+      numbering: {
+        reference: "default-numbering",
+        level: 0,
+      },
+      spacing: { after: 120 },
+    })
+  );
+}
 
     // ⭐ BULLET LINES
     else if (clean.startsWith("-")) {
@@ -373,8 +427,50 @@ if (req.files?.templateDocx?.[0]) {
 }
 
       const autoDoc = new Document({
-        sections: [{ children }],
-      });
+
+  numbering: {
+    config: [
+      {
+        reference: "default-numbering",
+        levels: [
+          {
+            level: 0,
+            format: "decimal",
+            text: "%1.",
+            alignment: "start",
+          },
+        ],
+      },
+    ],
+  },
+
+  styles: {
+    paragraphStyles: [
+      {
+        id: "Heading1",
+        name: "Heading 1",
+        basedOn: "Normal",
+        next: "Normal",
+        run: { bold: true, size: 32 },
+        paragraph: { spacing: { after: 240 } },
+      },
+      {
+        id: "Heading2",
+        name: "Heading 2",
+        basedOn: "Normal",
+        next: "Normal",
+        run: { bold: true, size: 26 },
+        paragraph: { spacing: { after: 160 } },
+      },
+    ],
+  },
+
+  sections: [
+    {
+      children,
+    },
+  ],
+});
 
       const buffer = await Packer.toBuffer(autoDoc);
 
@@ -394,29 +490,173 @@ if (req.files?.templateDocx?.[0]) {
   }
 );
 
+const ExcelJS = require("exceljs");
+
+app.post("/download-user-stories-excel", async (req, res) => {
+  try {
+    const { userStories, projectName } = req.body;
+
+    if (!userStories || !Array.isArray(userStories)) {
+      return res.status(400).json({ error: "No stories provided" });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("User Stories");
+
+    sheet.columns = [
+      { header: "ID", key: "id", width: 10 },
+      { header: "Epic", key: "epic", width: 30 },
+      { header: "User Story", key: "story", width: 70 },
+      { header: "Story Points", key: "storyPoints", width: 15 }
+    ];
+
+    userStories.forEach((s, i) => {
+      sheet.addRow({
+        id: `US-${i + 1}`,
+        epic: s.epic,
+        story: s.story,
+        storyPoints: s.storyPoints
+      });
+    });
+
+    sheet.getRow(1).font = { bold: true };
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${(projectName || "user-stories")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error("Excel error:", err);
+    res.status(500).json({ error: "Excel generation failed" });
+  }
+});
+
+app.post("/generate-test-cases", uploadMemory.any(), async (req,res)=>{
+ try{
+   let text="";
+   if(req.files?.[0]){
+     const file=req.files[0];
+     if(file.mimetype==="application/pdf"){
+       const pdf=await pdfParse(file.buffer);
+       text=pdf.text;
+     }else{
+       text=file.buffer.toString("utf8");
+     }
+   }
+
+const prompt=`
+You are a Senior QA Architect.
+
+Generate VERY DETAILED test cases.
+
+Return JSON ONLY:
+
+{
+ "testCases":[
+   {
+     "feature":"Login",
+     "scenario":"Valid login",
+     "steps":"1. Open login page...",
+     "expected":"User logged in",
+     "priority":"High"
+   }
+ ]
+}
+
+Requirements:
+${text}
+`;
+
+const resp=await openai.chat.completions.create({
+ model:"gpt-4.1-mini",
+ messages:[{role:"user",content:prompt}]
+});
+
+const raw=resp.choices[0].message.content;
+const match=raw.match(/\{[\s\S]*\}/);
+res.json(JSON.parse(match[0]));
+
+}catch(e){
+ console.error(e);
+ res.status(500).json({error:"TC generation failed"});
+}
+});
+
 async function generateEpicsAndStories({ requirementsText }) {
   if (!openai) {
     throw new Error("OPENAI_API_KEY missing — cannot generate backlog");
   }
 
   const prompt = `
-You are a Senior Agile Product Manager.
+You are a Senior Scrum Master creating a VERY LARGE Agile backlog.
 
-Break the requirements into MULTIPLE EPICS.
-Each Epic must contain STORIES.
+CRITICAL RULE:
 
-Return STRICT JSON in this exact format:
+DO NOT summarise.
+DO NOT combine features.
+DECOMPOSE EVERYTHING.
+
+Your goal is to EXPAND the backlog into MANY SMALL USER STORIES.
+
+Backlog Expansion Rules:
+
+- Break EACH feature into multiple stories:
+  UI story
+  validation story
+  backend processing story
+  error handling story
+  permissions story
+  reporting story
+
+- Prefer MANY SMALL STORIES over few big ones.
+- If unsure, SPLIT into separate stories.
+
+Target behaviour:
+Generate a HIGH VOLUME backlog similar to enterprise Jira boards.
+
+Each story must include:
+
+title
+description (LONG and detailed)
+storyPoints (1,2,3,5,8,13)
+severity
+priority
+acceptanceCriteria (6–10 items)
+
+Descriptions MUST include:
+- user interaction
+- system processing
+- edge cases
+- business value
+
+RETURN STRICT JSON:
 
 {
-  "epics": [
+  "epics":[
     {
-      "summary": "Epic Name",
-      "description": "Epic description",
-      "stories": [
+      "title":"Epic title",
+      "stories":[
         {
-          "summary": "Story title",
-          "description": "Detailed description",
-          "acceptanceCriteria": ["AC1", "AC2"]
+          "title":"Story title",
+          "description":"Detailed explanation...",
+          "storyPoints":5,
+          "severity":"High",
+          "priority":"P1",
+          "acceptanceCriteria":[
+            "criteria 1",
+            "criteria 2"
+          ]
         }
       ]
     }
@@ -426,6 +666,7 @@ Return STRICT JSON in this exact format:
 Requirements:
 ${requirementsText}
 `;
+
 
   const resp = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -713,6 +954,92 @@ try {
   }
 });
 
+
+// ⭐ Generate User Stories Only (reuses existing AI logic)
+app.post("/generate-user-stories", uploadMemory.any(), async (req, res) => {
+  try {
+    let requirementsText = (req.body?.requirementsText || "").trim();
+
+    // ⭐ If file uploaded from user-stories.html
+    if (!requirementsText && req.files && req.files.length > 0) {
+      const file = req.files[0];
+
+      // PDF
+      if (file.mimetype === "application/pdf") {
+        const pdf = await pdfParse(file.buffer);
+        requirementsText = pdf.text || "";
+      }
+
+      // DOCX or TXT
+      else {
+        requirementsText = file.buffer.toString("utf8");
+      }
+    }
+
+    if (!requirementsText) {
+      return res.status(400).json({
+        error: "No requirements text or file provided."
+      });
+    }
+
+    // ⭐ Reuse your existing AI backlog generator
+    const backlog = await generateEpicsAndStories({
+      requirementsText
+    });
+
+    // ⭐ Convert to UI format expected by user-stories.html
+    const epics = (backlog.epics || []).map(e => ({
+      name: e.title || "",
+      description: ""
+    }));
+
+    const userStories = [];
+
+    (backlog.epics || []).forEach(epic => {
+      (epic.stories || []).forEach(st => {
+        userStories.push({
+          epic: epic.title || "",
+          story: st.title || "",
+          storyPoints: st.storyPoints || ""
+        });
+      });
+    });
+
+    return res.json({
+      epics,
+      userStories
+    });
+
+  } catch (err) {
+    console.error("generate-user-stories error:", err);
+    res.status(500).json({ error: "Could not generate user stories." });
+  }
+});
+
+app.post("/download-testcases-excel", async(req,res)=>{
+ const ExcelJS=require("exceljs");
+ const wb=new ExcelJS.Workbook();
+ const ws=wb.addWorksheet("Test Cases");
+
+ ws.columns=[
+ {header:"ID",key:"id",width:10},
+ {header:"Feature",key:"feature",width:20},
+ {header:"Scenario",key:"scenario",width:30},
+ {header:"Steps",key:"steps",width:60},
+ {header:"Expected Result",key:"expected",width:40},
+ {header:"Priority",key:"priority",width:15}
+ ];
+
+ (req.body.testCases||[]).forEach((t,i)=>{
+  ws.addRow({id:`TC-${i+1}`,...t});
+ });
+
+ res.setHeader("Content-Type","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+ res.setHeader("Content-Disposition","attachment; filename=test-cases.xlsx");
+
+ await wb.xlsx.write(res);
+ res.end();
+});
 /* =========================
    START
 ========================= */

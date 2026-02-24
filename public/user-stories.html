@@ -189,6 +189,7 @@
   <a href="/sprint-review.html">Sprint Review (AI)</a>
   <a href="/sprint-retro.html">Sprint Retrospective (AI)</a>
   <a href="/code-review.html">Code Review (Beta)</a>
+  <a href="/test-cases.html">📋 Test Cases (AI)</a>
 
 </div>
 
@@ -214,11 +215,11 @@
       </div>
 
       <div style="margin-top: 12px;">
-        <label for="usBrdFile">BRD / Requirements Document (.docx)</label>
+        <label for="usBrdFile">BRD / Requirements Document (.pdf / .docx / .txt)</label>
         <input
           type="file"
           id="usBrdFile"
-          accept=".docx"
+          accept=".pdf,.docx,.txt,application/pdf"
         />
         <p class="helper">
           Upload a BRD / requirements DOCX. AI will parse it to generate epics &amp; user stories.
@@ -265,6 +266,10 @@
           <!-- Filled dynamically -->
         </tbody>
       </table>
+	  
+	  <button id="downloadExcelBtn" class="secondary">
+  Download User Stories Excel
+</button>
       <p class="helper">
         You can adjust the Epic name and Story Points per story. Excel export will use these values.
       </p>
@@ -522,6 +527,48 @@
         sendExcelEmailBtn.disabled = false;
       }
     });
+	
+	const downloadExcelBtn = document.getElementById("downloadExcelBtn");
+
+downloadExcelBtn.addEventListener("click", async () => {
+  if (!userStoriesArray || userStoriesArray.length === 0) {
+    usStatus.textContent = "Generate user stories first.";
+    usStatus.classList.add("status--error");
+    return;
+  }
+
+  try {
+    const res = await fetch("/download-user-stories-excel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        projectName: usProjectNameInput.value || "",
+        userStories: userStoriesArray
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to generate Excel.");
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "user-stories.xlsx";
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+
+  } catch (err) {
+    console.error(err);
+    usStatus.textContent = "Excel download failed.";
+    usStatus.classList.add("status--error");
+  }
+});
   </script>
 </body>
 </html>

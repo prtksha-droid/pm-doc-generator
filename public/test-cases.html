@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Test Case Generator</title>
+<style>
+body{font-family:system-ui;background:#f3f4f6;padding:20px}
+.container{background:#fff;padding:20px;border-radius:14px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+td,th{border:1px solid #ddd;padding:6px}
+button{padding:8px 14px;margin-top:10px;background:#2563eb;color:white;border:none;border-radius:999px}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>📋 AI Test Case Generator</h2>
+
+<input type="file" id="tcFile" accept=".pdf,.docx,.txt"/>
+<button id="generateTC">Generate Test Cases</button>
+<div id="tcStatus" style="margin-top:8px;font-size:13px;color:#2563eb;"></div>
+<button id="downloadTC">Download Excel</button>
+
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Feature</th>
+<th>Test Scenario</th>
+<th>Steps</th>
+<th>Expected Result</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody id="tcTable"></tbody>
+</table>
+</div>
+
+<script defer>
+console.log("✅ test-cases script loaded");
+let testCases=[];
+
+const tcStatus = document.getElementById("tcStatus");
+
+document.getElementById("generateTC").addEventListener("click", async () => {
+
+  const tcStatus = document.getElementById("tcStatus");
+
+  try {
+
+    tcStatus.textContent = "⏳ Generating AI test cases...";
+
+    const file = document.getElementById("tcFile").files[0];
+    if (!file) {
+      tcStatus.textContent = "⚠️ Upload a file first.";
+      tcStatus.style.color = "red";
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const res = await fetch("/generate-test-cases", {
+      method: "POST",
+      body: fd
+    });
+
+    const data = await res.json();
+    console.log("TEST CASE RESPONSE:", data);
+
+    const testCases = data.testCases || [];
+
+    const body = document.getElementById("tcTable");
+    body.innerHTML = "";
+
+    testCases.forEach((t, i) => {
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td>TC-${String(i+1).padStart(3,"0")}</td>
+        <td>${t.feature || ""}</td>
+        <td>${t.scenario || ""}</td>
+        <td style="white-space:pre-wrap">${t.steps || ""}</td>
+        <td>${t.expected || ""}</td>
+        <td>${t.priority || ""}</td>
+      `;
+
+      body.appendChild(row);
+    });
+
+    tcStatus.textContent = "✅ Test cases generated successfully.";
+    tcStatus.style.color = "green";
+
+  } catch (err) {
+    console.error(err);
+    tcStatus.textContent = "❌ Failed to generate test cases.";
+    tcStatus.style.color = "red";
+  }
+});
+
+document.getElementById("downloadTC").onclick=async()=>{
+ const res=await fetch("/download-testcases-excel",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({testCases})
+ });
+ const blob=await res.blob();
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;
+ a.download="test-cases.xlsx";
+ a.click();
+};
+</script>
+
+</body>
+
+</html>
