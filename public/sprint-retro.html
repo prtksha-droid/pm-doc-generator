@@ -152,6 +152,25 @@
       text-align: center;
       color: #6b7280;
     }
+	
+	/* ===== App Watermark Overlay ===== */
+.app-watermark {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0.12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-20deg);
+  font-size: 34px;
+  font-weight: 800;
+  text-align: center;
+  padding: 20px;
+  user-select: none;
+  white-space: pre-wrap;
+}
   </style>
 </head>
 
@@ -421,6 +440,31 @@ Generate JSON with:
         status.classList.add("status--error");
       }
     };
+	
+	// ===== App watermark dynamic text =====
+function updateAppWatermark() {
+  const wmEl = document.getElementById("appWatermark");
+  if (!wmEl) return;
+
+  const preparedBy = (document.getElementById("preparedBy")?.value || "Unknown User").trim();
+  const projectName = (document.getElementById("projectName")?.value || "Project").trim();
+  const docType = (document.getElementById("docType")?.value || "DOC").toUpperCase();
+  const ts = new Date().toISOString();
+
+  wmEl.textContent =
+    `CONFIDENTIAL • The Scrum Book / PM Doc Generator\ Pratiksha Bhattacharyya • ${ts} • ${docType}`;
+}
+
+// Update watermark as user types/changes fields
+["preparedBy", "projectName", "docType"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("input", updateAppWatermark);
+  el.addEventListener("change", updateAppWatermark);
+});
+
+// Initial render
+updateAppWatermark();
   </script>
 </body>
 </html>

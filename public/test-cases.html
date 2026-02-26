@@ -3,16 +3,213 @@
 <head>
 <meta charset="UTF-8">
 <title>Test Case Generator</title>
-<style>
-body{font-family:system-ui;background:#f3f4f6;padding:20px}
-.container{background:#fff;padding:20px;border-radius:14px}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-td,th{border:1px solid #ddd;padding:6px}
-button{padding:8px 14px;margin-top:10px;background:#2563eb;color:white;border:none;border-radius:999px}
-</style>
+ <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    p {
+      margin: 4px 0 12px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input[type="text"],
+    input[type="file"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+      background: #ffffff;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+    .section-box {
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      background: #f9fafb;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+    .helper {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .status--error {
+      color: #b91c1c;
+    }
+    .status--success {
+      color: #166534;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #2563eb;
+      color: #ffffff;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .nav a {
+      text-decoration: none;
+      color: #2563eb;
+      font-weight: 500;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    th,
+    td {
+      border: 1px solid #e5e7eb;
+      padding: 6px 8px;
+      vertical-align: top;
+    }
+    th {
+      background: #f3f4f6;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      font-size: 26px;
+    }
+    .app-name {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .app-tagline {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .app-footer {
+      margin-top: 18px;
+      font-size: 11px;
+      text-align: center;
+      color: #6b7280;
+    }/* ===== App Watermark Overlay ===== */
+.app-watermark {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0.12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-20deg);
+  font-size: 34px;
+  font-weight: 800;
+  text-align: center;
+  padding: 20px;
+  user-select: none;
+  white-space: pre-wrap;
+}
+  </style>
 </head>
 <body>
-<div class="container">
+  <div id="appWatermark" class="app-watermark"></div>
+
+  <div class="container">
+    <header class="app-header">
+      <div class="logo-row">
+        <span class="logo-icon">📘</span>
+        <div class="logo-text">
+          <div class="app-name">The Scrum Book</div>
+          <div class="app-tagline">AI-powered Agile documentation &amp; delivery toolkit</div>
+        </div>
+      </div>
+    </header>
+
+    <h1 style="display:none;">The Scrum Book</h1>
+
+    <div class="nav">
+      <span>Navigation:</span>
+      <a href="/">Main – Document Generator</a>
+      <a href="/user-stories.html">User Stories &amp; Epics</a>
+      <a href="/sprint-review.html">Sprint Review (AI)</a>
+      <a href="/sprint-retro.html">Sprint Retrospective (AI)</a>
+      <a href="/code-review.html">Code Review (Beta)</a>
+      <a href="/analytics.html">📊 Analytics (Tableau)</a>
+	  <a href="/test-cases.html">📋 Test Cases (AI)</a>
+    </div>
+
+    <hr>
+
 <h2>📋 AI Test Case Generator</h2>
 
 <input type="file" id="tcFile" accept=".pdf,.docx,.txt"/>
@@ -110,6 +307,31 @@ document.getElementById("downloadTC").onclick=async()=>{
  a.download="test-cases.xlsx";
  a.click();
 };
+
+// ===== App watermark dynamic text =====
+function updateAppWatermark() {
+  const wmEl = document.getElementById("appWatermark");
+  if (!wmEl) return;
+
+  const preparedBy = (document.getElementById("preparedBy")?.value || "Unknown User").trim();
+  const projectName = (document.getElementById("projectName")?.value || "Project").trim();
+  const docType = (document.getElementById("docType")?.value || "DOC").toUpperCase();
+  const ts = new Date().toISOString();
+
+  wmEl.textContent =
+    `CONFIDENTIAL • The Scrum Book / PM Doc Generator\ Pratiksha Bhattacharyya • ${ts} • ${docType}`;
+}
+
+// Update watermark as user types/changes fields
+["preparedBy", "projectName", "docType"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("input", updateAppWatermark);
+  el.addEventListener("change", updateAppWatermark);
+});
+
+// Initial render
+updateAppWatermark();
 </script>
 
 </body>

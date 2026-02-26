@@ -9,7 +9,8 @@ const path = require("path");
 const PizZip = require("pizzip");
 const Docxtemplater = require("docxtemplater");
 const pdfParse = require("pdf-parse");
-const { Document, Packer, Paragraph, HeadingLevel, TextRun } = require("docx");
+const { Document, Packer, Paragraph, HeadingLevel, TextRun, Footer } = require("docx");
+const crypto = require("crypto");
 const app = express();
 
 /* =========================
@@ -102,6 +103,27 @@ async function readJsonSafe(res) {
     // Atlassian sometimes returns HTML (login/error page); show first part for debugging
     throw new Error(`Non-JSON response (${res.status}): ${text.slice(0, 200)}`);
   }
+}
+
+
+function makeDocId() {
+  return crypto.randomBytes(8).toString("hex"); // 16 chars
+}
+
+function buildWatermark(data) {
+  const ts = new Date().toISOString();
+  const docId = makeDocId();
+
+  const preparedBy =
+    (data.preparedBy || data.atlassianEmail || "Unknown User").toString().trim();
+
+  const projectName = (data.projectName || "Project Document").toString().trim();
+  const docType = (data.docType || "doc").toString().trim().toUpperCase();
+
+  // Strong tracking line (B)
+  const line = `CONFIDENTIAL • The Scrum Book / PM Doc Generator • ${preparedBy} • ${ts} • DocID:${docId} • ${docType} • ${projectName}`;
+
+  return { docId, ts, line };
 }
 
 /* =========================
@@ -279,20 +301,56 @@ ${reqText}
   return resp.choices?.[0]?.message?.content?.trim() || "";
 }
 
+
+// =========================
+// AUTH (temporary stub)
+// =========================
+function authStub(req, res, next) {
+  // TODO: replace with real auth (JWT/session)
+  req.user = {
+    id: "u_demo",
+    email: "demo@company.com",
+    orgId: "org_demo",
+    role: "viewer" //admin", // viewer | editor | exporter | admin
+  };
+  next();
+}
+app.use(authStub);
+
+// =========================
+// RBAC
+// =========================
+const ROLE_ORDER = ["viewer", "editor", "exporter", "admin"];
+function requireRole(minRole) {
+  return (req, res, next) => {
+    const r = req.user?.role || "viewer";
+    if (ROLE_ORDER.indexOf(r) < ROLE_ORDER.indexOf(minRole)) {
+      return res.status(403).json({ error: "Forbidden: insufficient permissions" });
+	  console.log("RBAC CHECK:", req.path, "role=", req.user?.role, "need=", minRole);
+    }
+    next();
+  };
+}
 /* =========================
    ROUTES
 ========================= */
 app.get("/health", (req, res) => res.send("OK"));
-
 app.post(
   "/generate-docx",
+  requireRole("exporter"),
   uploadMemory.fields([
     { name: "templateDocx", maxCount: 1 },
     { name: "requirementsFile", maxCount: 1 },
   ]),
   async (req, res) => {
+    // existing code...
+
     try {
       const data = { ...req.body };
+	  const wm = buildWatermark(data);
+data.watermark = wm.line;     // for templates
+data.docId = wm.docId;        // optional for future use
+data.timestamp = wm.ts;       // optional for future use
 	  // ⭐ Read uploaded requirements file (PDF or TXT)
 if (req.files?.requirementsFile?.[0]) {
   const file = req.files.requirementsFile[0];
@@ -465,11 +523,22 @@ if (req.files?.templateDocx?.[0]) {
     ],
   },
 
-  sections: [
-    {
-      children,
+ sections: [
+  {
+    footers: {
+      default: new Footer({
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({ text: wm.line, size: 18 }),
+            ],
+          }),
+        ],
+      }),
     },
-  ],
+    children,
+  },
+],
 });
 
       const buffer = await Packer.toBuffer(autoDoc);
@@ -1040,6 +1109,9 @@ app.post("/download-testcases-excel", async(req,res)=>{
  await wb.xlsx.write(res);
  res.end();
 });
+
+
+
 /* =========================
    START
 ========================= */
